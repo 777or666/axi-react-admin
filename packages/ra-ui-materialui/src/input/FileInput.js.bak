@@ -82,9 +82,6 @@ export class FileInput extends Component {
         const updatedFiles = this.props.multiple
             ? [...this.state.files, ...files.map(this.transformFile)]
             : [...files.map(this.transformFile)];
-			//***ДОБАВЛЕНО!!!********
-            _this.props.input.onChange(updatedFiles)
-            //***********************
 
         this.setState({ files: updatedFiles });
 
@@ -100,9 +97,6 @@ export class FileInput extends Component {
         const filteredFiles = this.state.files.filter(
             stateFile => !shallowEqual(stateFile, file)
         );
-		//***ДОБАВЛЕНО!!!********
-		_this.props.input.onChange(filteredFiles)
-		//**********************
 
         this.setState({ files: filteredFiles });
 

@@ -1,6 +1,7 @@
 {
     "private": true,
-    "name": "react-admin-lerna",
+    "name": "axi-react-admin",
+	"version": "2.9.91",
     "scripts": {
         "build": "lerna run build",
         "build-demo": "cd examples/demo && cross-env REACT_APP_DATA_PROVIDER=rest yarn -s build",

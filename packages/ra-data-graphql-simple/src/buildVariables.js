@@ -242,13 +242,32 @@ export default introspectionResults => (
             );
         }
         case GET_MANY:
+            //******!!ИЗМЕНЕНО!!*********
+            let idslist = [];
+            if(params.ids[0] && Array.isArray(params.ids[0])) {
+                for(let i = 0; i< params.ids[0].length; i++){
+                    if(params.ids[0][i].id) {
+                        idslist.push(params.ids[0][i].id)
+                    }
+                }
+            }
+            else {
+                idslist = params.ids
+            }
             return {
-                filter: { ids: preparedParams.ids },
+                //filter: { ids: params.ids[0] },
+                filter: { ids: idslist },
             };
         case GET_MANY_REFERENCE: {
-            const parts = preparedParams.target.split('.');
+            var parts = params.target.split('.');
             return {
-                filter: { [`${parts[0]}Id`]: preparedParams.id },
+                filter: (_a = {}, _a[parts[0]] = { id: params.id }, _a),
+                //******!!ДОБАВЛЕНО!!*********
+                page: params.pagination.page-1,
+                perPage: params.pagination.perPage,
+                sortField: params.sort.field,
+                sortOrder: params.sort.order,
+                //****************************
             };
         }
         case GET_ONE:

@@ -1,0 +1,110 @@
+-----------------------------------------------------
+Веб-портал управления
+forked from marmelab/react-admin version 2.9.9
+https://github.com/marmelab/react-admin
+-----------------------------------------------------
+
+v2.9.91
+	- Добавлены необходимые изменения
+
+1 Внесены изменения в \axi-bpm-portal\node_modules\ra-data-graphql-simple\esm\buildVariables.js
+Причина: в старой версии парсинг массива id приводил к [Object object]
+
+в строке 105:
+    case GET_MANY:
+            //******!!ИЗМЕНЕНО!!*********
+            let idslist = [];
+            if(params.ids[0] && Array.isArray(params.ids[0])) {
+                for(let i = 0; i< params.ids[0].length; i++){
+                    if(params.ids[0][i].id) {
+                        idslist.push(params.ids[0][i].id)
+                    }
+                }
+            }
+            else {
+                idslist = params.ids
+            }
+            return {
+                //filter: { ids: params.ids[0] },
+                filter: { ids: idslist },
+            };
+
+в строке 115:
+    case GET_MANY_REFERENCE: {
+            var parts = params.target.split('.');
+            return {
+                filter: (_a = {}, _a[parts[0]] = { id: params.id }, _a),
+                //******!!ДОБАВЛЕНО!!*********
+                page: params.pagination.page-1,
+                perPage: params.pagination.perPage,
+                sortField: params.sort.field,
+                sortOrder: params.sort.order,
+                //****************************
+            };
+        }
+
+2 Внимание внесены изменения в \axi-bpm-portal\node_modules\ra-data-graphql-simple\esm\buildGqlQuery.js
+в строке 27
+    if (linkedResource) {
+        //******************ИЗМЕНЕНО!!***************** 
+        let fieldsType = [] 
+        let _fields = [] 
+        for(let ii=0; ii < introspectionResults.types.length; ii++)
+        { 
+            if(introspectionResults.types[ii].name === type.name) 
+            { 
+                _fields = introspectionResults.types[ii].fields 
+                break; 
+            } 
+        } 
+        Object.keys(_fields).map(key => { 
+            if(_fields[key].type.kind !== TypeKind.OBJECT
+                && _fields[key].type.kind !== TypeKind.LIST) {
+                if(_fields[key].type.ofType === null){
+                    fieldsType.push(gqlTypes.field(gqlTypes.name(_fields[key].name)))
+                }
+                else if(_fields[key].type.ofType !== null && 
+                                _fields[key].type.ofType.kind !== TypeKind.OBJECT){
+                    if(_fields[key].type.ofType.kind !== TypeKind.LIST)
+                    {
+                        fieldsType.push(gqlTypes.field(gqlTypes.name(_fields[key].name)))
+                    }
+                }  
+            } else {
+                if(_fields[key].type.ofType !== null && 
+                    _fields[key].type.ofType.kind !== TypeKind.OBJECT){
+                        if(_fields[key].type.ofType.kind !== TypeKind.LIST)
+                        {
+                            fieldsType.push(gqlTypes.field(gqlTypes.name(_fields[key].name)))
+                        }
+                    }  
+            }
+        }) 
+        return acc.concat([ 
+            //gqlTypes.field(gqlTypes.name(field.name), null, null, null, gqlTypes.selectionSet([gqlTypes.field(gqlTypes.name('id'))])),
+            gqlTypes.field(gqlTypes.name(field.name), null, null, null, gqlTypes.selectionSet(fieldsType)), 
+        ]); 
+        //*****************************
+
+3 Внесены изменения в node_modules\ra-ui-materialui\esm\input\FileInput.js
+в строке 65
+    var updatedFiles = _this.props.multiple
+                ? _this.state.files.concat(files.map(_this.transformFile)) : files.map(_this.transformFile).slice();
+            //***ДОБАВЛЕНО!!!********
+            _this.props.input.onChange(updatedFiles)
+            //***********************
+
+в строке 79 (в _this.onRemove = ...)
+        var filteredFiles = _this.state.files.filter(function (stateFile) { return !shallowEqual(stateFile, file); });
+            //***ДОБАВЛЕНО!!!********
+            _this.props.input.onChange(filteredFiles)
+            //**********************
+			
+4 Внесены изменения в node_modules\ra-ui-materialui\esm\form\FormInput.js
+в строке 31
+		var styles = function (theme) { return createStyles({
+				//input: { width: theme.spacing.unit * 32 },
+				//***ИЗМЕНЕНО*************
+				input: { width: '100%'},
+				//************************
+			}); };

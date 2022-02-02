@@ -24,45 +24,16 @@ export const buildFields = (introspectionResults, path = []) => fields =>
         );
 
         if (linkedResource) {
-            //******************ИЗМЕНЕНО!!***************** 
-			let fieldsType = [] 
-			let _fields = [] 
-			for(let ii=0; ii < introspectionResults.types.length; ii++)
-			{ 
-				if(introspectionResults.types[ii].name === type.name) 
-				{ 
-					_fields = introspectionResults.types[ii].fields 
-					break; 
-				} 
-			} 
-			Object.keys(_fields).map(key => { 
-				if(_fields[key].type.kind !== TypeKind.OBJECT
-					&& _fields[key].type.kind !== TypeKind.LIST) {
-					if(_fields[key].type.ofType === null){
-						fieldsType.push(gqlTypes.field(gqlTypes.name(_fields[key].name)))
-					}
-					else if(_fields[key].type.ofType !== null && 
-									_fields[key].type.ofType.kind !== TypeKind.OBJECT){
-						if(_fields[key].type.ofType.kind !== TypeKind.LIST)
-						{
-							fieldsType.push(gqlTypes.field(gqlTypes.name(_fields[key].name)))
-						}
-					}  
-				} else {
-					if(_fields[key].type.ofType !== null && 
-						_fields[key].type.ofType.kind !== TypeKind.OBJECT){
-							if(_fields[key].type.ofType.kind !== TypeKind.LIST)
-							{
-								fieldsType.push(gqlTypes.field(gqlTypes.name(_fields[key].name)))
-							}
-						}  
-				}
-			}) 
-			return acc.concat([ 
-				//gqlTypes.field(gqlTypes.name(field.name), null, null, null, gqlTypes.selectionSet([gqlTypes.field(gqlTypes.name('id'))])),
-				gqlTypes.field(gqlTypes.name(field.name), null, null, null, gqlTypes.selectionSet(fieldsType)), 
-			]); 
-			//*****************************
+            return [
+                ...acc,
+                gqlTypes.field(
+                    gqlTypes.name(field.name),
+                    null,
+                    null,
+                    null,
+                    gqlTypes.selectionSet([gqlTypes.field(gqlTypes.name('id'))])
+                ),
+            ];
         }
 
         const linkedType = introspectionResults.types.find(
