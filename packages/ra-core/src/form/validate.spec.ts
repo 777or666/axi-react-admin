@@ -1,3 +1,4 @@
+import assert from 'assert';
 import {
     required,
     minLength,
@@ -8,248 +9,23 @@ import {
     regex,
     email,
     choices,
-    composeValidators,
-    combine2Validators,
 } from './validate';
 
 describe('Validators', () => {
-    const test = async (validator, inputs, message) => {
-        const validationResults = await Promise.all<Error | undefined>(
-            inputs.map(input => validator(input, null))
-        ).then(results =>
-            results.map(error =>
-                error && error.message ? error.message : error
-            )
-        );
-
-        expect(validationResults).toEqual(
+    const translate = x => x;
+    const test = (validator, inputs, message) =>
+        assert.deepEqual(
+            inputs
+                .map(input => validator(input, null, { translate }))
+                .filter(m => m === message),
             Array(...Array(inputs.length)).map(() => message)
         );
-    };
-
-    describe('combine2Validators', () => {
-        it('should create a new validator that always return the result directly when both validator are synchronous', () => {
-            const includesFoo = value =>
-                value.match(/foo/) ? null : 'value must include foo';
-            const includesBar = value =>
-                value.match(/bar/) ? null : 'value must include bar';
-
-            const combinedValidator = combine2Validators(
-                includesFoo,
-                includesBar
-            );
-            expect(combinedValidator('foobar', null, null)).toBe(null);
-            expect(combinedValidator('bar', null, null)).toBe(
-                'value must include foo'
-            );
-            expect(combinedValidator('foo', null, null)).toBe(
-                'value must include bar'
-            );
-            expect(combinedValidator('', null, null)).toBe(
-                'value must include foo'
-            );
-        });
-
-        it('should create a new validator that always return a promise when both validator are asynchronous', async () => {
-            const includesFoo = value =>
-                Promise.resolve(
-                    value.match(/foo/) ? null : 'value must include foo'
-                );
-            const includesBar = value =>
-                Promise.resolve(
-                    value.match(/bar/) ? null : 'value must include bar'
-                );
-
-            const combinedValidator = combine2Validators(
-                includesFoo,
-                includesBar
-            );
-            const validPromise = combinedValidator('foobar', null, null);
-            expect(validPromise.then).toBeDefined();
-            expect(await validPromise).toBe(null);
-            const missingFooPromise = combinedValidator('bar', null, null);
-            expect(missingFooPromise.then).toBeDefined();
-            expect(await missingFooPromise).toBe('value must include foo');
-
-            const missingBarPromise = combinedValidator('foo', null, null);
-            expect(missingBarPromise.then).toBeDefined();
-            expect(await missingBarPromise).toBe('value must include bar');
-
-            const invalidPromise = combinedValidator('', null, null);
-            expect(invalidPromise.then).toBeDefined();
-            expect(await invalidPromise).toBe('value must include foo');
-        });
-
-        describe('synchronous validator + asynchronous validator', () => {
-            const includesFoo = value =>
-                value.match(/foo/) ? null : 'value must include foo';
-            const includesBar = value =>
-                Promise.resolve(
-                    value.match(/bar/) ? null : 'value must include bar'
-                );
-            const combinedValidator = combine2Validators(
-                includesFoo,
-                includesBar
-            );
-
-            it('should return valid result inside a promise when both validators pass', async () => {
-                const promise = combinedValidator('foobar', null, null);
-                expect(promise.then).toBeDefined();
-                expect(await promise).toBe(null);
-            });
-
-            it('should return invalid result directly when both validators fail', () => {
-                expect(combinedValidator('', null, null)).toBe(
-                    'value must include foo'
-                );
-            });
-
-            it('should return invalid result directly when first validator fail', () => {
-                expect(combinedValidator('bar', null, null)).toBe(
-                    'value must include foo'
-                );
-            });
-
-            it('should return invalid result inside a promise when second validator fail', async () => {
-                const promise = combinedValidator('foo', null, null);
-                expect(promise.then).toBeDefined();
-                expect(await promise).toBe('value must include bar');
-            });
-        });
-
-        describe('asynchronous validator + synchronous validator', () => {
-            const includesFoo = value =>
-                Promise.resolve(
-                    value.match(/foo/) ? null : 'value must include foo'
-                );
-            const includesBar = value =>
-                value.match(/bar/) ? null : 'value must include bar';
-            const combinedValidator = combine2Validators(
-                includesFoo,
-                includesBar
-            );
-
-            it('should return valid result inside a promise when both validators pass', async () => {
-                const promise = combinedValidator('foobar', null, null);
-                expect(promise.then).toBeDefined();
-                expect(await promise).toBe(null);
-            });
-
-            it('should return valid result inside a promise when both validators fail', async () => {
-                const promise = combinedValidator('', null, null);
-                expect(promise.then).toBeDefined();
-                expect(await promise).toBe('value must include foo');
-            });
-
-            it('should return invalid result in a promise when first validator fail', async () => {
-                const promise = combinedValidator('bar', null, null);
-                expect(promise.then).toBeDefined();
-                expect(await promise).toBe('value must include foo');
-            });
-
-            it('should return invalid result inside a promise when second validator fail', async () => {
-                const promise = combinedValidator('foo', null, null);
-                expect(promise.then).toBeDefined();
-                expect(await promise).toBe('value must include bar');
-            });
-        });
-    });
-
-    describe('composeValidators', () => {
-        const asyncSuccessfullValidator = async =>
-            new Promise(resolve => resolve(undefined));
-        const asyncFailedValidator = async =>
-            new Promise(resolve => resolve('async'));
-
-        it('Correctly composes validators passed as an array', async () => {
-            await test(
-                composeValidators([
-                    required(),
-                    minLength(5),
-                    asyncSuccessfullValidator,
-                ]),
-                [''],
-                'ra.validation.required'
-            );
-            await test(
-                composeValidators([
-                    required(),
-                    asyncSuccessfullValidator,
-                    minLength(5),
-                ]),
-                ['abcd'],
-                'ra.validation.minLength'
-            );
-            await test(
-                composeValidators([
-                    required(),
-                    asyncFailedValidator,
-                    minLength(5),
-                ]),
-                ['abcde'],
-                'async'
-            );
-            await test(
-                composeValidators([
-                    required(),
-                    minLength(5),
-                    asyncSuccessfullValidator,
-                ]),
-                ['abcde'],
-                undefined
-            );
-        });
-
-        it('Correctly composes validators passed as many arguments', async () => {
-            await test(
-                composeValidators(
-                    required(),
-                    minLength(5),
-                    asyncSuccessfullValidator
-                ),
-                [''],
-                'ra.validation.required'
-            );
-            await test(
-                composeValidators(
-                    required(),
-                    asyncSuccessfullValidator,
-                    minLength(5)
-                ),
-                ['abcd'],
-                'ra.validation.minLength'
-            );
-            await test(
-                composeValidators(
-                    required(),
-                    asyncFailedValidator,
-                    minLength(5)
-                ),
-                ['abcde'],
-                'async'
-            );
-            await test(
-                composeValidators(
-                    required(),
-                    minLength(5),
-                    asyncSuccessfullValidator
-                ),
-                ['abcde'],
-                undefined
-            );
-        });
-    });
-
     describe('required', () => {
         it('should return undefined if the value is not empty', () => {
-            test(required(), ['foo', 12, [1]], undefined);
+            test(required(), ['foo', 12], undefined);
         });
         it('should return an error message if the value is empty', () => {
-            test(
-                required(),
-                [undefined, '', null, []],
-                'ra.validation.required'
-            );
+            test(required(), [undefined, '', null], 'ra.validation.required');
         });
         it('should have a `isRequired` prop for allowing the UI to add a required marker', () => {
             expect(required().isRequired).toEqual(true);
@@ -258,14 +34,15 @@ describe('Validators', () => {
             const message = jest.fn(() => 'ra.validation.required');
             test(
                 required(message),
-                [undefined, '', null, []],
+                [undefined, '', null],
                 'ra.validation.required'
             );
-            expect(message).toHaveBeenCalledTimes(4);
+            expect(message).toHaveBeenCalledTimes(3);
             expect(message).toHaveBeenLastCalledWith({
                 args: undefined,
-                value: [],
+                value: null,
                 values: null,
+                translate,
             });
         });
     });
@@ -294,6 +71,7 @@ describe('Validators', () => {
                 args: { min: 5 },
                 value: '12',
                 values: null,
+                translate,
             });
         });
     });
@@ -322,6 +100,7 @@ describe('Validators', () => {
                 args: { max: 10 },
                 value: '12345678901',
                 values: null,
+                translate,
             });
         });
     });
@@ -346,6 +125,7 @@ describe('Validators', () => {
                 args: { min: 10 },
                 value: 0,
                 values: null,
+                translate,
             });
         });
     });
@@ -374,6 +154,7 @@ describe('Validators', () => {
                 args: { max: 10 },
                 value: '11',
                 values: null,
+                translate,
             });
         });
     });
@@ -395,6 +176,7 @@ describe('Validators', () => {
                 args: undefined,
                 value: 'foo',
                 values: null,
+                translate,
             });
         });
     });
@@ -420,13 +202,13 @@ describe('Validators', () => {
             );
         });
 
-        it('should memoize the validator when the regex pattern and message are the same', () => {
+        it('should memoize the validator when the regex pattren and message are the same', () => {
             expect(regex(/foo/, 'placeholder')).toBe(
                 regex(/foo/, 'placeholder')
             );
         });
 
-        it('should create new validator when the regex pattern is different', () => {
+        it('should create new validator when the regex pattren is different', () => {
             expect(regex(/foo/, 'placeholder')).not.toBe(
                 regex(/notfoo/, 'placeholder')
             );

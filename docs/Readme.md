@@ -4,11 +4,7 @@ title: "Documentation"
 ---
 # react-admin
 
-A frontend Framework for building data-driven applications running in the browser, on top of REST/GraphQL APIs, using [React](https://facebook.github.io/react/) and [Material Design](https://material.io/). Open sourced and maintained by [marmelab](https://marmelab.com/).
-
-[![react-admin-demo](https://marmelab.com/react-admin/img/react-admin-demo-still.png)](https://vimeo.com/474999017)
-
-Check out [the demos page](./Demos.md) for real-life examples.
+A frontend Framework for building admin applications running in the browser, on top of REST/GraphQL APIs, using ES6, [React](https://facebook.github.io/react/) and [Material Design](https://material.io/). Open sourced and maintained by [marmelab](https://marmelab.com/).
 
 ## Installation
 
@@ -17,26 +13,17 @@ using:
 
 ```sh
 npm install react-admin
-#or
-yarn add react-admin
 ```
-
-## How To Learn React-Admin
-
-1. Read the [Tutorial](./Tutorial.md) for a 30 minutes introduction. 
-2. Read the source code of [the demos](./Demos.md) for real-life examples.
-3. Read the [Documentation](./Admin.md) for a deep dive into the react-admin components and hooks.
-4. Read the [Architecture decisions](./Architecture.md) to better understand why features are implemented that way.
-5. Check out the [API Reference](./Reference.md) for a complete list of the public API.
-6. Get [Support](#support) for fixing your own problems
 
 ## Usage
 
-Here is a simple example of how to use React-admin:
+Read the [Tutorial](./Tutorial.md) for a 30 minutes introduction. After that, continue reading the [Documentation](./DataProviders.md), or checkout the [source code of the demo](https://github.com/marmelab/react-admin/tree/master/examples/demo) for an example usage.
+
+## At a Glance
 
 ```jsx
 // in app.js
-import * as React from "react";
+import React from 'react';
 import { render } from 'react-dom';
 import { Admin, Resource } from 'react-admin';
 import simpleRestProvider from 'ra-data-simple-rest';
@@ -51,13 +38,13 @@ render(
 );
 ```
 
-The `<Resource>` component is a configuration component that allows defining sub components for each of the admin view: `list`, `edit`, and `create`. These components use Material UI and custom components from react-admin:
+The `<Resource>` component is a configuration component that allows to define sub components for each of the admin view: `list`, `edit`, and `create`. These components use Material UI and custom components from react-admin:
 
 {% raw %}
 ```jsx
 // in posts.js
-import * as React from "react";
-import { List, Datagrid, Edit, Create, SimpleForm, DateField, TextField, EditButton, TextInput, DateInput } from 'react-admin';
+import React from 'react';
+import { List, Datagrid, Edit, Create, SimpleForm, DateField, TextField, EditButton, DisabledInput, TextInput, LongTextInput, DateInput } from 'react-admin';
 import BookIcon from '@material-ui/icons/Book';
 export const PostIcon = BookIcon;
 
@@ -81,13 +68,13 @@ const PostTitle = ({ record }) => {
 export const PostEdit = (props) => (
     <Edit title={<PostTitle />} {...props}>
         <SimpleForm>
-            <TextInput disabled source="id" />
+            <DisabledInput source="id" />
             <TextInput source="title" />
-            <TextInput source="teaser" options={{ multiline: true }} />
-            <TextInput multiline source="body" />
+            <TextInput source="teaser" options={{ multiLine: true }} />
+            <LongTextInput source="body" />
             <DateInput label="Publication date" source="published_at" />
             <TextInput source="average_note" />
-            <TextInput disabled label="Nb views" source="views" />
+            <DisabledInput label="Nb views" source="views" />
         </SimpleForm>
     </Edit>
 );
@@ -96,8 +83,8 @@ export const PostCreate = (props) => (
     <Create title="Create a Post" {...props}>
         <SimpleForm>
             <TextInput source="title" />
-            <TextInput source="teaser" options={{ multiline: true }} />
-            <TextInput multiline source="body" />
+            <TextInput source="teaser" options={{ multiLine: true }} />
+            <LongTextInput source="body" />
             <TextInput label="Publication date" source="published_at" />
             <TextInput source="average_note" />
         </SimpleForm>
@@ -116,60 +103,59 @@ React-admin uses an adapter approach, with a concept called *Data Providers*. Ex
 
 See the [Data Providers documentation](./DataProviders.md) for details.
 
-## Architecture: Batteries Included But Removable
+## Batteries Included But Removable
 
-React-admin is designed as a library of loosely coupled React components built on top of [material-ui](https://v4.mui.com/), in addition to React hooks allowing to reuse the logic with a custom UI. 
-
-You may replace one part of react-admin with your own, e.g. to use a custom Datagrid, GraphQL instead of REST, or Bootstrap instead of Material Design.
-
-Read more about the [Architecture choices](./Architecture.md).
-
-## Support
-
-* Get professional support from Marmelab via [React-Admin Enterprise Edition](https://marmelab.com/ra-enterprise)
-* Get community support via [StackOverflow](https://stackoverflow.com/questions/tagged/react-admin)
-
-## Enterprise Edition
-
-The [React-Admin Enterprise Edition](https://marmelab.com/ra-enterprise) <img class="icon" src="./img/premium.svg" /> offers additional features and services for react-admin:
-
-- Save weeks of development thanks to the **Private Modules**, valid on an unlimited number of domains and projects.
-  - `ra-preferences`: Persist user preferences (language, theme, filters, datagrid columns, sidebar position, etc) in local storage.
-  - `ra-navigation`: Multi-level menu and breadcrumb, with the ability to define a custom path for your resources.
-  - `ra-realtime`: Display live notifications, auto-update content on the screen, lock content when editing, with adapters for real-time backends.
-  - `ra-editable-datagrid`: Edit data directly in the list view, for better productivity. Excel-like editing experience.
-  - `ra-form-layout`: New form layouts for complex data entry tasks (accordion, wizard, etc.)
-  - `ra-relationships`: Visualize and edit complex relationships, including many-to-many relationships.
-  - `ra-tree`: Edit and visualize tree structures. Reorganize by drag and drop. Adapts to any data structure on the backend (parent_id, children, nested sets, etc).
-  - `ra-tour`: Guided tours for react-admin applications. Step-by-step instructions, Material-ui skin.
-  - `ra-markdown`: Read Markdown data, and edit it using a WYSIWYG editor in your admin
-- Get **Support** from experienced react and react-admin developers, who will help you find the right information and troubleshoot your bugs.
-- Get a **50% Discount on Professional Services** in case you need coaching, audit, or custom development by our experts.
-- Get access to exclusive **Learning Material**, including a Storybook full of examples, and a dedicated demo app.
-- Prioritize your needs in the react-admin **Development Roadmap** thanks to a priority vote.
-
-[![React-admin enterprise Edition](https://marmelab.com/ra-enterprise/assets/ra-enterprise-demo.png)](https://marmelab.com/ra-enterprise/)
-
-## Carbon Footprint
-
-Working towards digital sustainability is a crucial goal for the react-admin core team (and [a formal commitment](https://marmelab.com/en/values) for our sponsor, Marmelab). We monitor the carbon footprint of example react-admin apps with [GreenFrame](https://greenframe.io) to avoid adding features with a high ecological footprint. This also leads us to add features that reduce this footprint (like application cache or optimistic rendering). As a consequence, react-admin is not only fast but also respectful of the environment. Apps built with react-admin usually emit less carbon than apps built with other frameworks. 
+React-admin is designed as a library of loosely coupled React components built on top of [material-ui](http://v1.material-ui.com/), in addition to controller functions implemented the Redux way. It is very easy to replace one part of react-admin with your own, e.g. to use a custom datagrid, GraphQL instead of REST, or bootstrap instead of Material Design.
 
 ## Contributing
 
-If you want to give a hand: Thank you! There are many things you can do to help making react-admin better. 
+Pull requests are welcome on the [GitHub repository](https://github.com/marmelab/react-admin). Try to follow the coding style of the existing files, and include unit tests and documentation. Be prepared for a thorough code review, and be patient for the merge - this is an open-source initiative.
 
-The easiest task is **bug triaging**. Check that new issues on GitHub follow the issue template and give a way to reproduce the issue. If not, comment on the issue to ask precisions. Then, try and reproduce the issue following the description. If you managed to reproduce the issue, add a comment to say it. Otherwise, add a comment to say that something is missing. 
+You can run the example app by calling:
 
-The second way to contribute is to **answer support questions on [StackOverflow](https://stackoverflow.com/questions/tagged/react-admin)**. There are many beginner questions there, so even if you're not super experienced with react-admin, there is someone you can help there. 
+```sh
+make run
+```
 
-Pull requests for **bug fixes** are welcome on the [GitHub repository](https://github.com/marmelab/react-admin). There is always a bunch of [issues labeled "Good First Issue"](https://github.com/marmelab/react-admin/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) in the bug tracker - start with these. Check the contributing guidelines in [the repository README](https://github.com/marmelab/react-admin#contributing).
+And then browse to [http://localhost:8080/](http://localhost:8080/).
 
-If you want to **add a feature**, you can open a Pull request on the `next` branch. We don't accept all features - we try to keep the react-admin code small and manageable. Try and see if your feature can be built as an additional `npm` package. If you're in doubt, open a "Feature Request" issue to see if the core team would accept your feature before developing it. 
+If you want to contribute to the documentation, install jekyll, then call
+
+```sh
+make doc
+```
+
+And then browse to [http://localhost:4000/](http://localhost:4000/)
+
+You can run the unit tests by calling
+
+```sh
+make test
+```
+
+If you are using react-admin as a dependency, and if you want to try and hack it, here is the advised process:
+
+```sh
+# in myapp
+# install react-admin from GitHub in another directory
+$ cd ..
+$ git clone git@github.com:marmelab/react-admin.git && cd react-admin && make install
+# replace your node_modules/react-admin by a symbolic link to the github checkout
+$ cd ../myapp
+$ npm link ../react-admin
+# go back to the checkout, and replace the version of react by the one in your app
+$ cd ../react-admin
+$ npm link ../myapp/node_modules/react
+$ make watch
+# in another terminal, go back to your app, and start it as usual
+$ cd ../myapp
+$ npm run
+```
 
 ## License
 
-React-admin is licensed under the [MIT Licence](https://github.com/marmelab/react-admin/blob/master/LICENSE.md), sponsored and supported by [marmelab](https://marmelab.com).
+React-admin is licensed under the [MIT Licence](https://github.com/marmelab/react-admin/blob/master/LICENSE.md), sponsored and supported by [marmelab](http://marmelab.com).
 
 ## Donate
 
-This library is free to use, even for commercial purpose. If you want to give back, please talk about it, help newcomers, or contribute code. But the best way to give back is to **donate to a charity**. We recommend [Doctors Without Borders](https://www.doctorswithoutborders.org/).
+This library is free to use, even for commercial purpose. If you want to give back, please talk about it, help newcomers, or contribute code. But the best way to give back is to **donate to a charity**. We recommend [Doctors Without Borders](http://www.doctorswithoutborders.org/).

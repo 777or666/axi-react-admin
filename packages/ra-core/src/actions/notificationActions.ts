@@ -1,19 +1,17 @@
 export const SHOW_NOTIFICATION = 'RA/SHOW_NOTIFICATION';
 
-export type NotificationType = 'success' | 'info' | 'warning' | 'error';
+export type NotificationType = 'info' | 'warning' | 'error';
 
-export interface NotificationOptions {
-    // The duration in milliseconds the notification is shown
+interface NotificationOptions {
+    // The type of the notification
     autoHideDuration?: number;
     // Arguments used to translate the message
     messageArgs?: any;
-    // If true, the notification shows the message in multiple lines
-    multiLine?: boolean;
     // If true, the notification shows an Undo button
     undoable?: boolean;
 }
 
-export interface NotificationPayload {
+export interface Notification {
     readonly message: string;
     readonly type: NotificationType;
     readonly notificationOptions?: NotificationOptions;
@@ -21,13 +19,13 @@ export interface NotificationPayload {
 
 export interface ShowNotificationAction {
     readonly type: typeof SHOW_NOTIFICATION;
-    readonly payload: NotificationPayload;
+    readonly payload: Notification;
 }
 
 /**
  * Shows a snackbar/toast notification on the screen
  *
- * @see {@link https://v4.mui.com/api/snackbar/|Material ui snackbar component}
+ * @see {@link https://v1.material-ui.com/api/snackbar/|Material ui snackbar component}
  * @see {@link https://material.io/guidelines/components/snackbars-toasts.html|Material ui reference document on snackbar}
  */
 export const showNotification = (
@@ -54,14 +52,4 @@ export interface HideNotificationAction {
 
 export const hideNotification = (): HideNotificationAction => ({
     type: HIDE_NOTIFICATION,
-});
-
-export const RESET_NOTIFICATION = 'RA/RESET_NOTIFICATION';
-
-export interface ResetNotificationAction {
-    readonly type: typeof RESET_NOTIFICATION;
-}
-
-export const resetNotification = (): ResetNotificationAction => ({
-    type: RESET_NOTIFICATION,
 });

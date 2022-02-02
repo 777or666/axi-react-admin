@@ -1,60 +1,62 @@
-import * as React from 'react';
-import { FC, memo } from 'react';
+import React, { SFC } from 'react';
 import PropTypes from 'prop-types';
 import get from 'lodash/get';
+import pure from 'recompose/pure';
 import Typography, { TypographyProps } from '@material-ui/core/Typography';
-import { useRecordContext } from 'ra-core';
-
-import sanitizeFieldRestProps from './sanitizeFieldRestProps';
-import { InjectedFieldProps, PublicFieldProps, fieldPropTypes } from './types';
+import sanitizeRestProps from './sanitizeRestProps';
+import { InjectedFieldProps, FieldProps, fieldPropTypes } from './types';
 
 export const removeTags = (input: string) =>
     input ? input.replace(/<[^>]+>/gm, '') : '';
 
-const RichTextField: FC<RichTextFieldProps> = memo<RichTextFieldProps>(
-    props => {
-        const { className, emptyText, source, stripTags, ...rest } = props;
-        const record = useRecordContext(props);
-        const value = get(record, source);
+interface Props extends FieldProps {
+    stripTags: boolean;
+}
 
+const RichTextField: SFC<Props & InjectedFieldProps & TypographyProps> = ({
+    className,
+    source,
+    record = {},
+    stripTags,
+    ...rest
+}) => {
+    const value = get(record, source);
+    if (stripTags) {
         return (
             <Typography
                 className={className}
-                variant="body2"
                 component="span"
-                {...sanitizeFieldRestProps(rest)}
+                {...sanitizeRestProps(rest)}
             >
-                {value == null && emptyText ? (
-                    emptyText
-                ) : stripTags ? (
-                    removeTags(value)
-                ) : (
-                    <span dangerouslySetInnerHTML={{ __html: value }} />
-                )}
+                {removeTags(value)}
             </Typography>
         );
     }
-);
 
-RichTextField.defaultProps = {
+    return (
+        <Typography
+            className={className}
+            component="span"
+            {...sanitizeRestProps(rest)}
+        >
+            <span dangerouslySetInnerHTML={{ __html: value }} />
+        </Typography>
+    );
+};
+
+const EnhancedRichTextField = pure<Props & TypographyProps>(RichTextField);
+
+EnhancedRichTextField.defaultProps = {
     addLabel: true,
     stripTags: false,
 };
 
-RichTextField.propTypes = {
-    // @ts-ignore
+EnhancedRichTextField.propTypes = {
     ...Typography.propTypes,
     ...fieldPropTypes,
     stripTags: PropTypes.bool,
 };
 
-export interface RichTextFieldProps
-    extends PublicFieldProps,
-        InjectedFieldProps,
-        TypographyProps {
-    stripTags?: boolean;
-}
+EnhancedRichTextField.displayName = 'EnhancedRichTextField';
 
-RichTextField.displayName = 'RichTextField';
-
-export default RichTextField;
+export default EnhancedRichTextField;

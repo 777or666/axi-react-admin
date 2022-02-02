@@ -1,73 +1,93 @@
-import * as React from 'react';
-import { memo, FC } from 'react';
-import { SvgIconComponent } from '@material-ui/icons';
+import React, { SFC } from 'react';
 import PropTypes from 'prop-types';
 import get from 'lodash/get';
-import classnames from 'classnames';
-import DoneIcon from '@material-ui/icons/Done';
-import ClearIcon from '@material-ui/icons/Clear';
-import { Tooltip, Typography } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
-import { TypographyProps } from '@material-ui/core/Typography';
-import { useTranslate, useRecordContext } from 'ra-core';
+import pure from 'recompose/pure';
+import FalseIcon from '@material-ui/icons/Clear';
+import TrueIcon from '@material-ui/icons/Done';
+import Typography, { TypographyProps } from '@material-ui/core/Typography';
+import { createStyles, withStyles, WithStyles } from '@material-ui/core/styles';
+import compose from 'recompose/compose';
+import { translate as withTranslate, TranslationContextProps } from 'ra-core';
 
-import { PublicFieldProps, InjectedFieldProps, fieldPropTypes } from './types';
-import sanitizeFieldRestProps from './sanitizeFieldRestProps';
+import { FieldProps, InjectedFieldProps, fieldPropTypes } from './types';
+import sanitizeRestProps from './sanitizeRestProps';
 
-const useStyles = makeStyles(
-    {
-        root: {
-            display: 'flex',
-        },
+const styles = createStyles({
+    label: {
+        // Move the text out of the flow of the container.
+        position: 'absolute',
+
+        // Reduce its height and width to just one pixel.
+        height: 1,
+        width: 1,
+
+        // Hide any overflowing elements or text.
+        overflow: 'hidden',
+
+        // Clip the box to zero pixels.
+        clip: 'rect(0, 0, 0, 0)',
+
+        // Text won't wrap to a second line.
+        whiteSpace: 'nowrap',
     },
-    {
-        name: 'RaBooleanField',
-    }
-);
+});
 
-const BooleanField: FC<BooleanFieldProps> = memo(props => {
-    const {
-        className,
-        classes: classesOverride,
-        emptyText,
-        source,
-        valueLabelTrue,
-        valueLabelFalse,
-        TrueIcon,
-        FalseIcon,
-        looseValue,
-        ...rest
-    } = props;
-    const record = useRecordContext(props);
-    const translate = useTranslate();
-    const classes = useStyles(props);
+interface Props extends FieldProps {
+    valueLabelTrue?: string;
+    valueLabelFalse?: string;
+}
+
+interface EnhancedProps
+    extends TranslationContextProps,
+        WithStyles<typeof styles> {}
+
+export const BooleanField: SFC<
+    Props & InjectedFieldProps & EnhancedProps & TypographyProps
+> = ({
+    className,
+    classes,
+    source,
+    record = {},
+    translate,
+    valueLabelTrue,
+    valueLabelFalse,
+    ...rest
+}) => {
     const value = get(record, source);
-    const isTruthyValue = value === true || (looseValue && value);
     let ariaLabel = value ? valueLabelTrue : valueLabelFalse;
 
     if (!ariaLabel) {
-        ariaLabel = isTruthyValue ? 'ra.boolean.true' : 'ra.boolean.false';
+        ariaLabel = value === false ? 'ra.boolean.false' : 'ra.boolean.true';
     }
 
-    if (looseValue || value === false || value === true) {
+    if (value === false) {
         return (
             <Typography
                 component="span"
-                variant="body2"
-                className={classnames(classes.root, className)}
-                {...sanitizeFieldRestProps(rest)}
+                variant="body1"
+                className={className}
+                {...sanitizeRestProps(rest)}
             >
-                <Tooltip title={translate(ariaLabel, { _: ariaLabel })}>
-                    {isTruthyValue ? (
-                        <span>
-                            <TrueIcon data-testid="true" fontSize="small" />
-                        </span>
-                    ) : (
-                        <span>
-                            <FalseIcon data-testid="false" fontSize="small" />
-                        </span>
-                    )}
-                </Tooltip>
+                <span className={classes.label}>
+                    {translate(ariaLabel, { _: ariaLabel })}
+                </span>
+                <FalseIcon data-testid="false" />
+            </Typography>
+        );
+    }
+
+    if (value === true) {
+        return (
+            <Typography
+                component="span"
+                variant="body1"
+                className={className}
+                {...sanitizeRestProps(rest)}
+            >
+                <span className={classes.label}>
+                    {translate(ariaLabel, { _: ariaLabel })}
+                </span>
+                <TrueIcon data-testid="true" />
             </Typography>
         );
     }
@@ -75,44 +95,32 @@ const BooleanField: FC<BooleanFieldProps> = memo(props => {
     return (
         <Typography
             component="span"
-            variant="body2"
+            variant="body1"
             className={className}
-            {...sanitizeFieldRestProps(rest)}
-        >
-            {emptyText}
-        </Typography>
+            {...sanitizeRestProps(rest)}
+        />
     );
-});
-
-BooleanField.defaultProps = {
-    addLabel: true,
-    TrueIcon: DoneIcon,
-    FalseIcon: ClearIcon,
-    looseValue: false,
 };
 
-BooleanField.propTypes = {
-    // @ts-ignore
+const EnhancedBooleanField = compose<
+    Props & InjectedFieldProps & EnhancedProps & TypographyProps,
+    Props & TypographyProps
+>(
+    pure,
+    withStyles(styles),
+    withTranslate
+)(BooleanField);
+
+EnhancedBooleanField.defaultProps = {
+    addLabel: true,
+};
+
+EnhancedBooleanField.propTypes = {
     ...Typography.propTypes,
     ...fieldPropTypes,
     valueLabelFalse: PropTypes.string,
     valueLabelTrue: PropTypes.string,
-    TrueIcon: PropTypes.elementType,
-    FalseIcon: PropTypes.elementType,
-    looseValue: PropTypes.bool,
 };
+EnhancedBooleanField.displayName = 'EnhancedBooleanField';
 
-BooleanField.displayName = 'BooleanField';
-
-export interface BooleanFieldProps
-    extends PublicFieldProps,
-        InjectedFieldProps,
-        TypographyProps {
-    valueLabelTrue?: string;
-    valueLabelFalse?: string;
-    TrueIcon?: SvgIconComponent;
-    FalseIcon?: SvgIconComponent;
-    looseValue?: boolean;
-}
-
-export default BooleanField;
+export default EnhancedBooleanField;

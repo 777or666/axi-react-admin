@@ -1,64 +1,38 @@
-import * as React from 'react';
+import React from 'react';
 import expect from 'expect';
-import { waitFor } from '@testing-library/react';
+import { shallow, render } from 'enzyme';
+import { html } from 'cheerio';
 
-import Authenticated from './Authenticated';
-import AuthContext from './AuthContext';
-import { renderWithRedux } from 'ra-test';
-import { showNotification } from '../actions/notificationActions';
-import { createMemoryHistory } from 'history';
-import { Router } from 'react-router-dom';
+import { Authenticated } from './Authenticated';
 
 describe('<Authenticated>', () => {
     const Foo = () => <div>Foo</div>;
-
-    it('should render its child by default', async () => {
-        const { dispatch, queryByText } = renderWithRedux(
-            <Authenticated>
+    it('should call userCheck on mount', () => {
+        const userCheck = jest.fn();
+        shallow(
+            <Authenticated location={{}} userCheck={userCheck}>
                 <Foo />
             </Authenticated>
         );
-        expect(queryByText('Foo')).not.toBeNull();
-        await waitFor(() => {
-            expect(dispatch).toHaveBeenCalledTimes(0);
-        });
+        expect(userCheck.mock.calls.length).toEqual(1);
     });
-
-    it('should logout, redirect to login and show a notification after a tick if the auth fails', async () => {
-        const authProvider = {
-            login: jest.fn().mockResolvedValue(''),
-            logout: jest.fn().mockResolvedValue(''),
-            checkAuth: jest.fn().mockRejectedValue(undefined),
-            checkError: jest.fn().mockResolvedValue(''),
-            getPermissions: jest.fn().mockResolvedValue(''),
-        };
-
-        const history = createMemoryHistory();
-
-        const { dispatch } = renderWithRedux(
-            <Router history={history}>
-                <AuthContext.Provider value={authProvider}>
-                    <Authenticated>
-                        <Foo />
-                    </Authenticated>
-                </AuthContext.Provider>
-            </Router>
+    it('should call userCheck on update', () => {
+        const userCheck = jest.fn();
+        const wrapper = shallow(
+            <Authenticated location={{}} userCheck={userCheck}>
+                <Foo />
+            </Authenticated>
         );
-        await waitFor(() => {
-            expect(authProvider.checkAuth.mock.calls[0][0]).toEqual({});
-            expect(authProvider.logout.mock.calls[0][0]).toEqual({});
-            expect(dispatch).toHaveBeenCalledTimes(2);
-            expect(dispatch.mock.calls[0][0]).toEqual(
-                showNotification('ra.auth.auth_check_error', 'warning')
-            );
-            expect(dispatch.mock.calls[1][0]).toEqual({
-                type: 'RA/CLEAR_STATE',
-            });
-            expect(history.location.pathname).toEqual('/login');
-            expect(history.location.state).toEqual({
-                nextPathname: '/',
-                nextSearch: '',
-            });
-        });
+        wrapper.setProps({ location: { pathname: 'foo' }, userCheck });
+        expect(userCheck.mock.calls.length).toEqual(2);
+    });
+    it('should render its child by default', () => {
+        const userCheck = jest.fn();
+        const wrapper = render(
+            <Authenticated location={{}} userCheck={userCheck}>
+                <Foo />
+            </Authenticated>
+        );
+        expect(html(wrapper)).toEqual('<div>Foo</div>');
     });
 });

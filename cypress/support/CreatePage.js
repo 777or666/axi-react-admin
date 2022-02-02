@@ -10,7 +10,7 @@ export default url => ({
         },
         inputs: `.ra-input`,
         richTextInputError: '.create-page .ra-rich-text-input-error',
-        snackbar: 'div[role="alert"]',
+        snackbar: 'div[role="alertdialog"]',
         submitButton: ".create-page div[role='toolbar'] button[type='submit']",
         submitAndShowButton:
             ".create-page form div[role='toolbar'] button[type='button']:nth-child(2)",
@@ -21,8 +21,6 @@ export default url => ({
         descInput: '.ql-editor',
         tab: index => `.form-tab:nth-of-type(${index})`,
         title: '#react-admin-title',
-        userMenu: 'button[title="Profile"]',
-        logout: '.logout',
     },
 
     navigate() {
@@ -30,7 +28,7 @@ export default url => ({
     },
 
     waitUntilVisible() {
-        cy.get(this.elements.submitButton).should('be.visible');
+        cy.get(this.elements.submitButton);
     },
 
     setInputValue(type, name, value, clearPreviousValue = true) {
@@ -43,9 +41,7 @@ export default url => ({
         if (clearPreviousValue) {
             cy.get(this.elements.input(name, type)).clear();
         }
-        cy.get(this.elements.input(name, type)).type(
-            `${clearPreviousValue ? '{selectall}' : ''}${value}`
-        );
+        cy.get(this.elements.input(name, type)).type(value);
         if (type === 'rich-text-input') {
             cy.wait(500);
         }
@@ -64,13 +60,6 @@ export default url => ({
 
     submit() {
         cy.get(this.elements.submitButton).click();
-        cy.get(this.elements.snackbar);
-        cy.get(this.elements.body).click(); // dismiss notification
-        cy.wait(200); // let the notification disappear (could block further submits)
-    },
-
-    submitWithKeyboard() {
-        cy.get("input[type='text']:first").type('{enter}');
         cy.get(this.elements.snackbar);
         cy.get(this.elements.body).click(); // dismiss notification
         cy.wait(200); // let the notification disappear (could block further submits)
@@ -98,11 +87,6 @@ export default url => ({
     },
 
     gotoTab(index) {
-        cy.get(this.elements.tab(index)).click({ force: true });
-    },
-
-    logout() {
-        cy.get(this.elements.userMenu).click();
-        cy.get(this.elements.logout).click();
+        cy.get(this.elements.tab(index)).click();
     },
 });

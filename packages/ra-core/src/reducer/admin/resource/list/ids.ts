@@ -3,41 +3,64 @@ import uniq from 'lodash/uniq';
 import {
     CRUD_GET_LIST_SUCCESS,
     CrudGetListSuccessAction,
+    CRUD_GET_MANY_SUCCESS,
+    CrudGetManySuccessAction,
+    CRUD_GET_MANY_REFERENCE_SUCCESS,
+    CrudGetManyReferenceSuccessAction,
+    CRUD_GET_ONE_SUCCESS,
     CrudGetOneSuccessAction,
     CRUD_CREATE_SUCCESS,
     CrudCreateSuccessAction,
-} from '../../../../actions';
-import { DELETE, DELETE_MANY } from '../../../../core';
+    CRUD_UPDATE_SUCCESS,
+    CrudUpdateSuccessAction,
+} from '../../../../actions/dataActions';
+import getFetchedAt from '../../../../util/getFetchedAt';
+import { DELETE, DELETE_MANY } from '../../../../dataFetchActions';
 import { Identifier } from '../../../../types';
 
 type IdentifierArray = Identifier[];
 
+export interface IdentifierArrayWithDate extends IdentifierArray {
+    fetchedAt?: Date;
+}
+
+type State = IdentifierArrayWithDate;
+
+export const addRecordIdsFactory = getFetchedAtCallback => (
+    newRecordIds: IdentifierArrayWithDate = [],
+    oldRecordIds: IdentifierArrayWithDate
+): IdentifierArrayWithDate => {
+    const newFetchedAt = getFetchedAtCallback(
+        newRecordIds,
+        oldRecordIds.fetchedAt
+    );
+    const recordIds = uniq(
+        oldRecordIds.filter(id => !!newFetchedAt[id]).concat(newRecordIds)
+    );
+
+    Object.defineProperty(recordIds, 'fetchedAt', {
+        value: newFetchedAt,
+    }); // non enumerable by default
+    return recordIds;
+};
+
+const addRecordIds = addRecordIdsFactory(getFetchedAt);
+
 type ActionTypes =
     | CrudGetListSuccessAction
+    | CrudGetManySuccessAction
+    | CrudGetManyReferenceSuccessAction
     | CrudGetOneSuccessAction
     | CrudCreateSuccessAction
+    | CrudUpdateSuccessAction
     | {
           type: 'OTHER_ACTION';
           payload: any;
           meta: any;
       };
 
-const initialState = [];
-
-/**
- * List of the ids of the latest loaded page, regardless of params
- *
- * When loading the list for the first time, useListController grabs the ids
- * from the cachedRequests reducer (not this ids reducer). It's only when the user
- * changes page, sort, or filter, that the useListController hook uses the ids
- * reducer, so as to show the previous list of results while loading the new
- * list (instead of displaying a blank page each time the list params change).
- *
- * @see useListController
- *
- */
-const idsReducer: Reducer<IdentifierArray> = (
-    previousState = initialState,
+const idsReducer: Reducer<State> = (
+    previousState = [],
     action: ActionTypes
 ) => {
     if (action.meta && action.meta.optimistic) {
@@ -48,15 +71,24 @@ const idsReducer: Reducer<IdentifierArray> = (
             if (index === -1) {
                 return previousState;
             }
-            return [
+            const newState = [
                 ...previousState.slice(0, index),
                 ...previousState.slice(index + 1),
             ];
+
+            Object.defineProperty(newState, 'fetchedAt', {
+                value: previousState.fetchedAt,
+            });
+
+            return newState;
         }
         if (action.meta.fetch === DELETE_MANY) {
             const newState = previousState.filter(
                 el => !action.payload.ids.includes(el)
             );
+            Object.defineProperty(newState, 'fetchedAt', {
+                value: previousState.fetchedAt,
+            });
 
             return newState;
         }
@@ -64,9 +96,19 @@ const idsReducer: Reducer<IdentifierArray> = (
 
     switch (action.type) {
         case CRUD_GET_LIST_SUCCESS:
-            return action.payload.data.map(({ id }) => id);
+            return addRecordIds(action.payload.data.map(({ id }) => id), []);
+        case CRUD_GET_MANY_SUCCESS:
+        case CRUD_GET_MANY_REFERENCE_SUCCESS:
+            return addRecordIds(
+                action.payload.data
+                    .map(({ id }) => id)
+                    .filter(id => previousState.indexOf(id) !== -1),
+                previousState
+            );
+        case CRUD_GET_ONE_SUCCESS:
         case CRUD_CREATE_SUCCESS:
-            return uniq([action.payload.data.id, ...previousState]);
+        case CRUD_UPDATE_SUCCESS:
+            return addRecordIds([action.payload.data.id], previousState);
         default:
             return previousState;
     }

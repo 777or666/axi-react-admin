@@ -1,9 +1,7 @@
 # ra-data-graphql-simple
 
 A GraphQL data provider for [react-admin](https://github.com/marmelab/react-admin/)
-built with [Apollo](https://www.apollodata.com/) and tailored to target a simple GraphQL implementation.
-
-**This is an example implementation to show how to build a graphql adapter using `ra-data-graphql`.**
+built with [Apollo](http://www.apollodata.com/) and tailored to target a simple GraphQL implementation.
 
 - [Installation](#installation)
 - [Usage](#installation)
@@ -25,34 +23,39 @@ yarn add graphql ra-data-graphql-simple
 
 ## Usage
 
-The `ra-data-graphql-simple` package exposes a single function, which is a constructor for a `dataProvider` based on a GraphQL endpoint. When executed, this function calls the GraphQL endpoint, running an [introspection](https://graphql.org/learn/introspection/) query. It uses the result of this query (the GraphQL schema) to automatically configure the `dataProvider` accordingly.
+The `ra-data-graphql-simple` package exposes a single function, which is a constructor for a `dataProvider` based on a GraphQL endpoint. When executed, this function calls the GraphQL endpoint, running an [introspection](http://graphql.org/learn/introspection/) query. It uses the result of this query (the GraphQL schema) to automatically configure the `dataProvider` accordingly.
 
-```jsx
+```js
 // in App.js
-import React from 'react';
-import { Component } from 'react';
+import React, { Component } from 'react';
 import buildGraphQLProvider from 'ra-data-graphql-simple';
-import { Admin, Resource } from 'react-admin';
+import { Admin, Resource, Delete } from 'react-admin';
 
 import { PostCreate, PostEdit, PostList } from './posts';
 
-const App = () => {
-
-    const [dataProvider, setDataProvider] = React.useState(null);
-    React.useEffect(() => {
-        buildGraphQLProvider({ clientOptions: { uri: 'http://localhost:4000' } })
-            .then(graphQlDataProvider => setDataProvider(() => graphQlDataProvider));
-    }, []);
-
-    if (!dataProvider) {
-        return <div>Loading < /div>;
+class App extends Component {
+    constructor() {
+        super();
+        this.state = { dataProvider: null };
+    }
+    componentDidMount() {
+        buildGraphQLProvider({ clientOptions: { uri: 'http://localhost:4000' }})
+            .then(dataProvider => this.setState({ dataProvider }));
     }
 
-    return (
-        <Admin dataProvider= { dataProvider } >
-            <Resource name="Post" list = { PostList } edit = { PostEdit } create = { PostCreate } />
-        </Admin>
-    );
+    render() {
+        const { dataProvider } = this.state;
+
+        if (!dataProvider) {
+            return <div>Loading</div>;
+        }
+
+        return (
+            <Admin dataProvider={dataProvider}>
+                <Resource name="Post" list={PostList} edit={PostEdit} create={PostCreate} remove={Delete} />
+            </Admin>
+        );
+    }
 }
 
 export default App;
@@ -163,7 +166,7 @@ const myBuildQuery = introspection => (fetchType, resource, params) => {
     }
 
     return builtQuery;
-};
+}
 
 export default buildGraphQLProvider({ buildQuery: myBuildQuery })
 ```
@@ -176,7 +179,7 @@ These are the default options for introspection:
 const introspectionOptions = {
     include: [], // Either an array of types to include or a function which will be called for every type discovered through introspection
     exclude: [], // Either an array of types to exclude or a function which will be called for every type discovered through introspection
-};
+}
 
 // Including types
 const introspectionOptions = {
@@ -199,9 +202,9 @@ const introspectionOptions = {
 };
 ```
 
-**Note**: `exclude` and `include` are mutually exclusives and `include` will take precedence.
+**Note**: `exclude` and `include` are mutualy exclusives and `include` will take precendance.
 
-**Note**: When using functions, the `type` argument will be a type returned by the introspection query. Refer to the [introspection](https://graphql.org/learn/introspection/) documentation for more information.
+**Note**: When using functions, the `type` argument will be a type returned by the introspection query. Refer to the [introspection](http://graphql.org/learn/introspection/) documentation for more information.
 
 Pass the introspection options to the `buildApolloProvider` function:
 

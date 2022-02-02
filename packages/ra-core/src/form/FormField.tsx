@@ -1,7 +1,9 @@
-import * as React from 'react';
+import React, { ComponentType, SFC } from 'react';
 import PropTypes from 'prop-types';
-import { Field, FieldProps, FieldRenderProps } from 'react-final-form';
-import { Validator, composeValidators } from './validate';
+import { Field } from 'redux-form';
+import withDefaultValue from './withDefaultValue';
+import { Validator } from './validate';
+import { InputProps } from './types';
 
 export const isRequired = validate => {
     if (validate && validate.isRequired) {
@@ -13,46 +15,32 @@ export const isRequired = validate => {
     return false;
 };
 
-interface Props
-    extends Omit<
-        FieldProps<any, FieldRenderProps<any, HTMLElement>, HTMLElement>,
-        'validate'
-    > {
-    defaultValue?: any;
+interface Props {
+    component: ComponentType<InputProps>;
+    defaultValue: any;
     input?: any;
     source: string;
-    validate?: Validator | Validator[];
+    validate: Validator | Validator[];
 }
 
-const FormField = (props: Props) => {
-    const { id, input, validate, ...rest } = props;
-    if (process.env.NODE_ENV !== 'production') {
-        console.log('FormField is deprecated, use the useInput hook instead.');
-    }
-
-    const sanitizedValidate = Array.isArray(validate)
-        ? composeValidators(validate)
-        : validate;
-
-    const finalId = id || rest.source;
-
-    return input ? ( // An ancestor is already decorated by Field
-        React.createElement(rest.component, { input, id: finalId, ...rest })
+export const FormFieldView: SFC<Props> = ({ input, ...props }) =>
+    input ? ( // An ancestor is already decorated by Field
+        React.createElement(props.component, { input, ...props })
     ) : (
         <Field
-            {...rest}
-            id={finalId}
-            name={rest.source}
-            isRequired={isRequired(validate)}
-            validate={sanitizedValidate}
+            {...props}
+            name={props.source}
+            isRequired={isRequired(props.validate)}
         />
     );
-};
 
-FormField.propTypes = {
+FormFieldView.propTypes = {
+    component: PropTypes.any.isRequired,
     defaultValue: PropTypes.any,
+    input: PropTypes.object,
     source: PropTypes.string,
     validate: PropTypes.oneOfType([PropTypes.func, PropTypes.array]),
 };
 
+const FormField = withDefaultValue(FormFieldView);
 export default FormField;

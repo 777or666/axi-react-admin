@@ -1,53 +1,58 @@
-import expect from 'expect';
+import assert from 'assert';
 import getFieldLabelTranslationArgs from './getFieldLabelTranslationArgs';
 
 describe('getFieldLabelTranslationArgs', () => {
     it('should return empty span by default', () =>
-        expect(getFieldLabelTranslationArgs()).toEqual(['']));
+        assert.deepEqual(getFieldLabelTranslationArgs(), ['']));
 
     it('should return the label when given', () =>
-        expect(
+        assert.deepEqual(
             getFieldLabelTranslationArgs({
                 label: 'foo',
                 resource: 'posts',
                 source: 'title',
-            })
-        ).toEqual(['foo', { _: 'foo' }]));
+            }),
+            ['foo', { _: 'foo' }]
+        ));
 
     it('should return the humanized source when given', () => {
-        expect(
+        assert.deepEqual(
             getFieldLabelTranslationArgs({
                 resource: 'posts',
                 source: 'title',
-            })
-        ).toEqual([`resources.posts.fields.title`, { _: 'Title' }]);
+            }),
+            [`resources.posts.fields.title`, { _: 'Title' }]
+        );
 
-        expect(
+        assert.deepEqual(
             getFieldLabelTranslationArgs({
                 resource: 'posts',
                 source: 'title_with_underscore',
-            })
-        ).toEqual([
-            `resources.posts.fields.title_with_underscore`,
-            { _: 'Title with underscore' },
-        ]);
+            }),
+            [
+                `resources.posts.fields.title_with_underscore`,
+                { _: 'Title with underscore' },
+            ]
+        );
 
-        expect(
+        assert.deepEqual(
             getFieldLabelTranslationArgs({
                 resource: 'posts',
                 source: 'titleWithCamelCase',
-            })
-        ).toEqual([
-            `resources.posts.fields.titleWithCamelCase`,
-            { _: 'Title with camel case' },
-        ]);
+            }),
+            [
+                `resources.posts.fields.titleWithCamelCase`,
+                { _: 'Title with camel case' },
+            ]
+        );
     });
 
     it('should return the source and resource as translate key', () =>
-        expect(
+        assert.deepEqual(
             getFieldLabelTranslationArgs({
                 resource: 'posts',
                 source: 'title',
-            })
-        ).toEqual([`resources.posts.fields.title`, { _: 'Title' }]));
+            }),
+            [`resources.posts.fields.title`, { _: 'Title' }]
+        ));
 });

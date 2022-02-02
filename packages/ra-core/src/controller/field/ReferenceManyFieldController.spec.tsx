@@ -1,296 +1,108 @@
-import * as React from 'react';
-import { waitFor } from '@testing-library/react';
-import expect from 'expect';
-
-import ReferenceManyFieldController from './ReferenceManyFieldController';
-import { renderWithRedux } from 'ra-test';
+import React from 'react';
+import assert from 'assert';
+import { shallow } from 'enzyme';
+import { render } from 'react-testing-library';
+import { UnconnectedReferenceManyFieldController as ReferenceManyFieldController } from './ReferenceManyFieldController';
 
 describe('<ReferenceManyFieldController />', () => {
-    it('should set loaded to false when related records are not yet fetched', async () => {
-        const ComponentToTest = ({ loaded }: { loaded?: boolean }) => {
-            return <div>loaded: {loaded.toString()}</div>;
-        };
-
-        const { queryByText } = renderWithRedux(
+    it('should set loadedOnce to false when related records are not yet fetched', () => {
+        const children = jest.fn();
+        const crudGetManyReference = jest.fn();
+        shallow(
             <ReferenceManyFieldController
                 resource="foo"
-                source="items"
                 reference="bar"
                 target="foo_id"
                 basePath=""
-            >
-                {props => <ComponentToTest {...props} />}
-            </ReferenceManyFieldController>,
-            {
-                admin: {
-                    resources: {
-                        bar: {
-                            data: {
-                                1: { id: 1, title: 'hello' },
-                                2: { id: 2, title: 'world' },
-                            },
-                        },
-                    },
-                    references: {
-                        oneToMany: {
-                            'foo_bar@fooId_barId': {},
-                        },
-                    },
-                },
-            }
-        );
-
-        expect(queryByText('loaded: false')).not.toBeNull();
-        await waitFor(() => {
-            expect(queryByText('loaded: true')).not.toBeNull();
-        });
-    });
-
-    it('should set loaded to true when related records have been fetched and there are no results', async () => {
-        const ComponentToTest = ({ loaded }: { loaded?: boolean }) => {
-            return <div>loaded: {loaded.toString()}</div>;
-        };
-
-        const { queryByText } = renderWithRedux(
-            <ReferenceManyFieldController
-                resource="foo"
-                source="items"
-                reference="bar"
-                target="foo_id"
-                basePath=""
-                record={{
-                    id: 'fooId',
-                    source: 'barId',
-                }}
-            >
-                {props => <ComponentToTest {...props} />}
-            </ReferenceManyFieldController>,
-            {
-                admin: {
-                    resources: {
-                        bar: {
-                            data: {
-                                1: { id: 1, title: 'hello' },
-                                2: { id: 2, title: 'world' },
-                            },
-                        },
-                    },
-                    references: {
-                        oneToMany: {
-                            'foo_bar@fooId_barId': {
-                                ids: [],
-                            },
-                        },
-                    },
-                },
-            }
-        );
-
-        expect(queryByText('loaded: false')).not.toBeNull();
-        await waitFor(() => {
-            expect(queryByText('loaded: true')).not.toBeNull();
-        });
-    });
-
-    it('should set loaded to true when related records have been fetched and there are results', async () => {
-        const ComponentToTest = ({ loaded }: { loaded?: boolean }) => {
-            return <div>loaded: {loaded.toString()}</div>;
-        };
-
-        const { queryByText } = renderWithRedux(
-            <ReferenceManyFieldController
-                resource="foo"
-                source="items"
-                reference="bar"
-                target="foo_id"
-                basePath=""
-                record={{
-                    id: 'fooId',
-                    source: 'barId',
-                }}
-            >
-                {props => <ComponentToTest {...props} />}
-            </ReferenceManyFieldController>,
-            {
-                admin: {
-                    resources: {
-                        bar: {
-                            data: {
-                                1: { id: 1, title: 'hello' },
-                                2: { id: 2, title: 'world' },
-                            },
-                        },
-                    },
-                    references: {
-                        oneToMany: {
-                            'foo_bar@fooId_barId': {
-                                ids: [1, 2],
-                            },
-                        },
-                    },
-                },
-            }
-        );
-
-        expect(queryByText('loaded: false')).not.toBeNull();
-        await waitFor(() => {
-            expect(queryByText('loaded: true')).not.toBeNull();
-        });
-    });
-
-    it('should call dataProvider.getManyReferences on mount', async () => {
-        const children = jest.fn().mockReturnValue('children');
-        const { dispatch } = renderWithRedux(
-            <ReferenceManyFieldController
-                resource="foo"
-                source="items"
-                reference="bar"
-                target="foo_id"
-                basePath=""
-                record={{
-                    id: 'fooId',
-                    source: 'barId',
-                }}
+                crudGetManyReference={crudGetManyReference}
             >
                 {children}
             </ReferenceManyFieldController>,
-            {
-                admin: {
-                    resources: {
-                        bar: {
-                            data: {
-                                1: { id: 1, title: 'hello' },
-                                2: { id: 2, title: 'world' },
-                            },
-                        },
-                    },
-                    references: {
-                        oneToMany: {
-                            'foo_bar@fooId_barId': {
-                                ids: [1, 2],
-                            },
-                        },
-                    },
-                },
-            }
+            { disableLifecycleMethods: true }
         );
-        await waitFor(() => {
-            expect(dispatch.mock.calls[0]).toEqual([
-                {
-                    meta: {
-                        relatedTo: 'foo_bar@foo_id_undefined',
-                        resource: 'bar',
-                    },
-                    payload: {
-                        filter: {},
-                        id: undefined,
-                        pagination: { page: 1, perPage: 25 },
-                        sort: { field: 'id', order: 'DESC' },
-                        target: 'foo_id',
-                    },
-                    type: 'RA/CRUD_GET_MANY_REFERENCE',
-                },
-            ]);
-        });
+        assert.equal(children.mock.calls[0][0].loadedOnce, false);
     });
 
-    it('should pass data and ids to children function', async () => {
-        const children = jest.fn().mockReturnValue('children');
+    it('should pass data and ids to children function', () => {
+        const children = jest.fn();
+        const crudGetManyReference = jest.fn();
         const data = {
             1: { id: 1, title: 'hello' },
             2: { id: 2, title: 'world' },
         };
-        renderWithRedux(
+        shallow(
             <ReferenceManyFieldController
                 resource="foo"
                 reference="bar"
-                target="fooId"
+                target="foo_id"
                 basePath=""
-                record={{
-                    id: 'fooId',
-                    source: 'barId',
-                }}
-                source="source"
+                data={data}
+                ids={[1, 2]}
+                crudGetManyReference={crudGetManyReference}
             >
                 {children}
             </ReferenceManyFieldController>,
-            {
-                admin: {
-                    resources: {
-                        bar: {
-                            data: {
-                                1: { id: 1, title: 'hello' },
-                                2: { id: 2, title: 'world' },
-                            },
-                        },
-                    },
-                    references: {
-                        oneToMany: {
-                            'foo_bar@fooId_barId': {
-                                ids: [1, 2],
-                            },
-                        },
-                    },
-                },
-            }
+            { disableLifecycleMethods: true }
         );
-        await waitFor(() => {
-            expect(children.mock.calls[0][0].data).toEqual(data);
-            expect(children.mock.calls[0][0].ids).toEqual([1, 2]);
-        });
+        assert.deepEqual(children.mock.calls[0][0].data, data);
+        assert.deepEqual(children.mock.calls[0][0].ids, [1, 2]);
     });
 
-    it('should support record with string identifier', async () => {
-        const children = jest.fn().mockReturnValue('children');
-        renderWithRedux(
+    it('should support record with string identifier', () => {
+        const children = jest.fn();
+        const crudGetManyReference = jest.fn();
+        const data = {
+            'abc-1': { id: 'abc-1', title: 'hello' },
+            'abc-2': { id: 'abc-2', title: 'world' },
+        };
+        shallow(
             <ReferenceManyFieldController
                 resource="foo"
                 reference="bar"
-                target="fooId"
+                target="foo_id"
                 basePath=""
-                record={{
-                    id: 'fooId',
-                    source: 'barId',
-                }}
-                source="source"
+                data={data}
+                ids={['abc-1', 'abc-2']}
+                crudGetManyReference={crudGetManyReference}
             >
                 {children}
             </ReferenceManyFieldController>,
-            {
-                admin: {
-                    resources: {
-                        bar: {
-                            data: {
-                                'abc-1': { id: 'abc-1', title: 'hello' },
-                                'abc-2': { id: 'abc-2', title: 'world' },
-                            },
-                        },
-                    },
-                    references: {
-                        oneToMany: {
-                            'foo_bar@fooId_barId': {
-                                ids: ['abc-1', 'abc-2'],
-                            },
-                        },
-                    },
-                },
-            }
+            { disableLifecycleMethods: true }
         );
-        await waitFor(() => {
-            expect(children.mock.calls[0][0].data).toEqual({
-                'abc-1': { id: 'abc-1', title: 'hello' },
-                'abc-2': { id: 'abc-2', title: 'world' },
-            });
-            expect(children.mock.calls[0][0].ids).toEqual(['abc-1', 'abc-2']);
-        });
+        assert.deepEqual(children.mock.calls[0][0].data, data);
+        assert.deepEqual(children.mock.calls[0][0].ids, ['abc-1', 'abc-2']);
     });
 
-    it('should support custom source', async () => {
-        const children = jest.fn(({ data }) =>
-            data && data.length > 0 ? data.length : null
+    it('should support record with number identifier', () => {
+        const children = jest.fn();
+        const crudGetManyReference = jest.fn();
+        const data = {
+            1: { id: 1, title: 'hello' },
+            2: { id: 2, title: 'world' },
+        };
+        shallow(
+            <ReferenceManyFieldController
+                resource="foo"
+                reference="bar"
+                target="foo_id"
+                basePath=""
+                data={data}
+                ids={[1, 2]}
+                crudGetManyReference={crudGetManyReference}
+            >
+                {children}
+            </ReferenceManyFieldController>,
+            { disableLifecycleMethods: true }
         );
+        assert.deepEqual(children.mock.calls[0][0].data, data);
+        assert.deepEqual(children.mock.calls[0][0].ids, [1, 2]);
+    });
 
-        const { dispatch } = renderWithRedux(
+    it('should support custom source', () => {
+        const children = jest.fn();
+        const crudGetManyReference = jest.fn();
+
+        shallow(
             <ReferenceManyFieldController
                 resource="posts"
                 reference="comments"
@@ -298,62 +110,17 @@ describe('<ReferenceManyFieldController />', () => {
                 basePath=""
                 record={{ id: 'not me', customId: 1 }}
                 source="customId"
+                crudGetManyReference={crudGetManyReference}
             >
                 {children}
-            </ReferenceManyFieldController>,
-            {
-                admin: {
-                    references: {
-                        oneToMany: {
-                            'posts_comments@post_id_1': {
-                                ids: [1],
-                                total: 1,
-                            },
-                        },
-                    },
-                    resources: {
-                        comments: {
-                            data: {
-                                1: {
-                                    post_id: 1,
-                                    id: 1,
-                                    body: 'Hello!',
-                                },
-                            },
-                        },
-                    },
-                },
-            }
+            </ReferenceManyFieldController>
         );
-        await waitFor(() => {
-            expect(dispatch.mock.calls[0]).toEqual([
-                {
-                    meta: {
-                        relatedTo: 'posts_comments@post_id_1',
-                        resource: 'comments',
-                    },
-                    payload: {
-                        filter: {},
-                        id: 1,
-                        pagination: { page: 1, perPage: 25 },
-                        sort: { field: 'id', order: 'DESC' },
-                        target: 'post_id',
-                    },
-                    type: 'RA/CRUD_GET_MANY_REFERENCE',
-                },
-            ]);
 
-            expect(children.mock.calls[0][0].data).toEqual({
-                1: {
-                    post_id: 1,
-                    id: 1,
-                    body: 'Hello!',
-                },
-            });
-        });
+        assert.equal(crudGetManyReference.mock.calls[0][2], 1);
     });
 
-    it('should call crudGetManyReference when its props changes', async () => {
+    it('should call crudGetManyReference when its props changes', () => {
+        const crudGetManyReference = jest.fn();
         const ControllerWrapper = props => (
             <ReferenceManyFieldController
                 record={{ id: 1 }}
@@ -361,58 +128,30 @@ describe('<ReferenceManyFieldController />', () => {
                 reference="bar"
                 target="foo_id"
                 basePath=""
-                source="id"
+                data={{
+                    1: { id: 1, title: 'hello' },
+                    2: { id: 2, title: 'world' },
+                }}
+                ids={[1, 2]}
+                crudGetManyReference={crudGetManyReference}
                 {...props}
             >
-                {() => 'null'}
+                {() => null}
             </ReferenceManyFieldController>
         );
 
-        const { rerender, dispatch } = renderWithRedux(<ControllerWrapper />, {
-            admin: {
-                resources: {
-                    bar: {},
-                    foo: {},
-                },
-            },
-        });
-        expect(dispatch).toBeCalledTimes(3); // CRUD_GET_MANY_REFERENCE, CRUD_GET_MANY_REFERENCE_LOADING, FETCH_START
+        const { rerender } = render(<ControllerWrapper />);
         rerender(<ControllerWrapper sort={{ field: 'id', order: 'ASC' }} />);
-        expect(dispatch).toBeCalledTimes(6);
-        await waitFor(() => {
-            expect(dispatch.mock.calls[0]).toEqual([
-                {
-                    meta: {
-                        relatedTo: 'foo_bar@foo_id_1',
-                        resource: 'bar',
-                    },
-                    payload: {
-                        filter: {},
-                        id: 1,
-                        pagination: { page: 1, perPage: 25 },
-                        sort: { field: 'id', order: 'DESC' },
-                        target: 'foo_id',
-                    },
-                    type: 'RA/CRUD_GET_MANY_REFERENCE',
-                },
-            ]);
 
-            expect(dispatch.mock.calls[3]).toEqual([
-                {
-                    meta: {
-                        relatedTo: 'foo_bar@foo_id_1',
-                        resource: 'bar',
-                    },
-                    payload: {
-                        filter: {},
-                        id: 1,
-                        pagination: { page: 1, perPage: 25 },
-                        sort: { field: 'id', order: 'ASC' },
-                        target: 'foo_id',
-                    },
-                    type: 'RA/CRUD_GET_MANY_REFERENCE',
-                },
-            ]);
-        });
+        assert.deepEqual(crudGetManyReference.mock.calls[1], [
+            'bar',
+            'foo_id',
+            1,
+            'foo_bar@foo_id_1',
+            { page: 1, perPage: 25 },
+            { field: 'id', order: 'ASC' },
+            {},
+            'id',
+        ]);
     });
 });

@@ -1,359 +1,531 @@
-import * as React from 'react';
-import { useState, useCallback } from 'react';
-import { fireEvent, waitFor } from '@testing-library/react';
-import omit from 'lodash/omit';
-import expect from 'expect';
-
-import { renderWithRedux } from 'ra-test';
-import ReferenceInputController from './ReferenceInputController';
-import { DataProviderContext } from '../../dataProvider';
+import React from 'react';
+import assert from 'assert';
+import { shallow } from 'enzyme';
+import { render } from 'react-testing-library';
+import { UnconnectedReferenceInputController as ReferenceInputController } from './ReferenceInputController';
 
 describe('<ReferenceInputController />', () => {
     const defaultProps = {
         basePath: '/comments',
         children: jest.fn(),
-        input: { value: undefined } as any,
+        crudGetManyAccumulate: jest.fn(),
+        crudGetMatchingAccumulate: jest.fn(),
+        meta: {},
+        input: { value: undefined },
         onChange: jest.fn(),
         reference: 'posts',
         resource: 'comments',
         source: 'post_id',
+        translate: x => `*${x}*`,
     };
 
-    const dataProvider = {
-        getMany: jest.fn(() =>
-            Promise.resolve({ data: [{ id: 1, title: 'foo' }] })
-        ),
-        getList: jest.fn(() =>
-            Promise.resolve({
-                data: [
-                    { id: 1, title: 'foo' },
-                    { id: 2, title: 'bar' },
-                ],
-                total: 2,
-            })
-        ),
-    };
-
-    it('should fetch possible values using getList', async () => {
-        const children = jest.fn().mockReturnValue(<p>child</p>);
-        const { dispatch } = renderWithRedux(
-            <DataProviderContext.Provider value={dataProvider}>
-                <ReferenceInputController {...defaultProps}>
-                    {children}
-                </ReferenceInputController>
-            </DataProviderContext.Provider>
+    it('should set isLoading to true if the references are being searched and a selected reference does not have data', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...{
+                    ...defaultProps,
+                    input: { value: 1 },
+                    isLoading: true,
+                }}
+            >
+                {children}
+            </ReferenceInputController>
         );
 
-        await waitFor(() => {
-            expect(dispatch).toBeCalledTimes(5);
-            expect(dispatch.mock.calls[0][0]).toEqual({
-                type: 'CUSTOM_QUERY',
-                payload: {
-                    filter: {
-                        q: '',
-                    },
-                    pagination: {
-                        page: 1,
-                        perPage: 25,
-                    },
-                    sort: {
-                        field: 'id',
-                        order: 'DESC',
-                    },
-                },
-                meta: { resource: 'posts' },
-            });
-        });
+        assert.equal(children.mock.calls[0][0].isLoading, true);
     });
 
-    it('should allow getList pagination and sorting customization', async () => {
-        const children = jest.fn().mockReturnValue(<p>child</p>);
-        const { dispatch } = renderWithRedux(
-            <DataProviderContext.Provider value={dataProvider}>
-                <ReferenceInputController
-                    {...{
-                        ...defaultProps,
-                        page: 5,
-                        perPage: 10,
-                        sort: { field: 'title', order: 'ASC' },
-                    }}
-                >
-                    {children}
-                </ReferenceInputController>
-            </DataProviderContext.Provider>
+    it('should set isLoading to true if the references are being searched and there is no reference already selected', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: null,
+                    referenceRecord: null,
+                }}
+            >
+                {children}
+            </ReferenceInputController>
+        );
+        assert.equal(children.mock.calls[0][0].isLoading, true);
+    });
+
+    it('should set isLoading to false if the references are being searched but a selected reference have data', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: null,
+                    referenceRecord: { id: 1 },
+                    input: { value: 1 },
+                }}
+            >
+                {children}
+            </ReferenceInputController>
+        );
+        assert.equal(children.mock.calls[0][0].isLoading, false);
+        assert.deepEqual(children.mock.calls[0][0].choices, [{ id: 1 }]);
+    });
+
+    it('should set isLoading to false if the references were found but a selected reference does not have data', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: [{ id: 2 }],
+                    referenceRecord: null,
+                    input: { value: 1 },
+                }}
+            >
+                {children}
+            </ReferenceInputController>
+        );
+        assert.equal(children.mock.calls[0][0].isLoading, false);
+        assert.deepEqual(children.mock.calls[0][0].choices, [{ id: 2 }]);
+    });
+
+    it('should set error in case of references fetch error and selected reference does not have data', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: { error: 'fetch error' },
+                    referenceRecord: null,
+                    input: { value: 1 },
+                }}
+            >
+                {children}
+            </ReferenceInputController>
+        );
+        assert.equal(
+            children.mock.calls[0][0].error,
+            '*ra.input.references.single_missing*'
+        );
+    });
+
+    it('should set error in case of references fetch error and there is no reference already selected', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: { error: 'fetch error' },
+                    referenceRecord: null,
+                }}
+            >
+                {children}
+            </ReferenceInputController>
+        );
+        assert.equal(children.mock.calls[0][0].error, '*fetch error*');
+    });
+
+    it('should not set error in case of references fetch error but selected reference have data', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: { error: 'fetch error' },
+                    referenceRecord: { id: 1 },
+                    input: { value: 1 },
+                }}
+            >
+                {children}
+            </ReferenceInputController>
         );
 
-        await waitFor(() => {
-            expect(dispatch).toBeCalledTimes(5);
-            expect(dispatch.mock.calls[0][0]).toEqual({
-                type: 'CUSTOM_QUERY',
-                payload: {
-                    filter: {
-                        q: '',
-                    },
-                    pagination: {
-                        page: 5,
-                        perPage: 10,
-                    },
-                    sort: {
-                        field: 'title',
-                        order: 'ASC',
-                    },
-                },
-                meta: { resource: 'posts' },
-            });
-        });
+        assert.equal(children.mock.calls[0][0].error, undefined);
     });
 
-    it('should fetch current value using getMany', async () => {
-        const children = jest.fn().mockReturnValue(<p>child</p>);
-        const { dispatch } = renderWithRedux(
-            <DataProviderContext.Provider value={dataProvider}>
-                <ReferenceInputController
-                    {...{
-                        ...defaultProps,
-                        input: { value: 1 } as any,
-                    }}
-                >
-                    {children}
-                </ReferenceInputController>
-            </DataProviderContext.Provider>
+    it('should not set error if the references are empty (but fetched without error) and a selected reference does not have data', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: [],
+                    referenceRecord: null,
+                    input: { value: 1 },
+                }}
+            >
+                {children}
+            </ReferenceInputController>
         );
-
-        await waitFor(() => {
-            expect(dispatch).toBeCalledTimes(10); // 5 for getList, 5 for getMany
-            expect(dispatch.mock.calls[5][0]).toEqual({
-                type: 'RA/CRUD_GET_MANY',
-                payload: { ids: [1] },
-                meta: { resource: 'posts' },
-            });
-        });
+        assert.equal(children.mock.calls[0][0].error, undefined);
     });
 
-    it('should pass possibleValues and record to child', async () => {
-        const children = jest.fn().mockReturnValue(<p>child</p>);
-        renderWithRedux(
-            <DataProviderContext.Provider value={dataProvider}>
-                <ReferenceInputController
-                    {...{
-                        ...defaultProps,
-                        input: { value: 1 } as any,
-                        loading: true,
-                        sort: { field: 'title', order: 'ASC' },
-                    }}
-                >
-                    {children}
-                </ReferenceInputController>
-            </DataProviderContext.Provider>,
+    it('should set warning in case of references fetch error and there selected reference with data', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: { error: 'fetch error' },
+                    referenceRecord: { id: 1 },
+                    input: { value: 1 },
+                }}
+            >
+                {children}
+            </ReferenceInputController>
+        );
+        assert.equal(children.mock.calls[0][0].warning, '*fetch error*');
+    });
+
+    it('should set warning if references were found but not the already selected one', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: [],
+                    referenceRecord: null,
+                    input: { value: 1 },
+                }}
+            >
+                {children}
+            </ReferenceInputController>
+        );
+        assert.equal(
+            children.mock.calls[0][0].warning,
+            '*ra.input.references.single_missing*'
+        );
+    });
+
+    it('should not set warning if all references were found', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: [{ id: 1 }, { id: 2 }],
+                    referenceRecord: { id: 1 },
+                    input: { value: 1 },
+                }}
+            >
+                {children}
+            </ReferenceInputController>
+        );
+        assert.equal(children.mock.calls[0][0].warning, undefined);
+    });
+
+    it('should call crudGetMatchingAccumulate on mount with default fetch values', () => {
+        const crudGetMatchingAccumulate = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...defaultProps}
+                allowEmpty
+                crudGetMatchingAccumulate={crudGetMatchingAccumulate}
+            />
+        );
+        assert.deepEqual(crudGetMatchingAccumulate.mock.calls[0], [
+            'posts',
+            'comments@post_id',
             {
-                admin: {
-                    resources: { posts: { data: { 1: { id: 1 } } } },
-                },
-            }
-        );
-
-        await waitFor(() => {
-            expect(
-                omit(children.mock.calls[0][0], [
-                    'onChange',
-                    'setPagination',
-                    'setFilter',
-                    'setSort',
-                    'possibleValues.hideFilter',
-                    'possibleValues.onSelect',
-                    'possibleValues.onToggleItem',
-                    'possibleValues.onUnselectItems',
-                    'possibleValues.setFilters',
-                    'possibleValues.setPage',
-                    'possibleValues.setPerPage',
-                    'possibleValues.setSort',
-                    'possibleValues.showFilter',
-                ])
-            ).toEqual({
-                refetch: expect.any(Function),
-                possibleValues: {
-                    basePath: '/comments',
-                    currentSort: {
-                        field: 'title',
-                        order: 'ASC',
-                    },
-                    data: {
-                        '1': {
-                            id: 1,
-                        },
-                    },
-                    displayedFilters: [],
-                    error: null,
-                    filterValues: {
-                        q: '',
-                    },
-                    hasCreate: false,
-
-                    ids: [1],
-                    loaded: false,
-                    loading: true,
-                    page: 1,
-                    perPage: 25,
-                    refetch: expect.any(Function),
-                    resource: 'comments',
-                    selectedIds: [],
-
-                    total: NaN,
-                },
-                referenceRecord: {
-                    data: {
-                        id: 1,
-                    },
-                    error: null,
-                    loaded: true,
-                    loading: true,
-                    refetch: expect.any(Function),
-                },
-                dataStatus: {
-                    error: null,
-                    loading: false,
-                    warning: null,
-                },
-                choices: [{ id: 1 }],
-                error: null,
-                filter: { q: '' },
-                loaded: false,
-                loading: true,
-                pagination: { page: 1, perPage: 25 },
-                sort: { field: 'title', order: 'ASC' },
-                warning: null,
-            });
-        });
+                page: 1,
+                perPage: 25,
+            },
+            {
+                field: 'id',
+                order: 'DESC',
+            },
+            {},
+        ]);
     });
 
-    it('should refetch reference getList when its props change', async () => {
-        const children = jest.fn().mockReturnValue(<p>child</p>);
-        const Component = () => {
-            const [sort, setSort] = useState({ field: 'title', order: 'ASC' });
-            const handleClick = useCallback(
-                () => setSort({ field: 'body', order: 'DESC' }),
-                [setSort]
-            );
-            return (
-                <>
-                    <button aria-label="Change sort" onClick={handleClick} />
-                    <ReferenceInputController
-                        {...{
-                            ...defaultProps,
-                            loading: true,
-                            sort,
-                        }}
-                    >
-                        {children}
-                    </ReferenceInputController>
-                </>
-            );
-        };
-        const { getByLabelText, dispatch } = renderWithRedux(
-            <DataProviderContext.Provider value={dataProvider}>
-                <Component />
-            </DataProviderContext.Provider>
+    it('should allow to customize crudGetMatchingAccumulate arguments with perPage, sort, and filter props', () => {
+        const crudGetMatchingAccumulate = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...defaultProps}
+                allowEmpty
+                crudGetMatchingAccumulate={crudGetMatchingAccumulate}
+                sort={{ field: 'foo', order: 'ASC' }}
+                perPage={5}
+                filter={{ q: 'foo' }}
+            />
         );
-
-        await waitFor(() => {
-            expect(dispatch).toBeCalledTimes(5);
-            expect(dispatch.mock.calls[0][0]).toEqual({
-                type: 'CUSTOM_QUERY',
-                payload: {
-                    filter: {
-                        q: '',
-                    },
-                    pagination: {
-                        page: 1,
-                        perPage: 25,
-                    },
-                    sort: {
-                        field: 'title',
-                        order: 'ASC',
-                    },
-                },
-                meta: { resource: 'posts' },
-            });
-        });
-        fireEvent.click(getByLabelText('Change sort'));
-        await waitFor(() => {
-            expect(dispatch).toBeCalledTimes(10);
-            expect(dispatch.mock.calls[5][0]).toEqual({
-                type: 'CUSTOM_QUERY',
-                payload: {
-                    filter: {
-                        q: '',
-                    },
-                    pagination: {
-                        page: 1,
-                        perPage: 25,
-                    },
-                    sort: {
-                        field: 'body',
-                        order: 'DESC',
-                    },
-                },
-                meta: { resource: 'posts' },
-            });
-        });
+        assert.deepEqual(crudGetMatchingAccumulate.mock.calls[0], [
+            'posts',
+            'comments@post_id',
+            {
+                page: 1,
+                perPage: 5,
+            },
+            {
+                field: 'foo',
+                order: 'ASC',
+            },
+            {
+                q: 'foo',
+            },
+        ]);
     });
 
-    describe('enableGetChoices', () => {
-        it('should not fetch possible values using getList on load but only when enableGetChoices returns true', async () => {
-            const children = jest.fn().mockReturnValue(<p>child</p>);
-            const enableGetChoices = jest.fn().mockImplementation(({ q }) => {
-                return q.length > 2;
-            });
-            const { dispatch } = renderWithRedux(
-                <DataProviderContext.Provider value={dataProvider}>
-                    <ReferenceInputController
-                        {...defaultProps}
-                        enableGetChoices={enableGetChoices}
-                    >
-                        {children}
-                    </ReferenceInputController>
-                </DataProviderContext.Provider>
-            );
+    it('should allow to customize crudGetMatchingAccumulate arguments with perPage, sort, and filter props without loosing original default filter', () => {
+        const crudGetMatchingAccumulate = jest.fn();
+        const wrapper = shallow(
+            <ReferenceInputController
+                {...defaultProps}
+                allowEmpty
+                crudGetMatchingAccumulate={crudGetMatchingAccumulate}
+                sort={{ field: 'foo', order: 'ASC' }}
+                perPage={5}
+                filter={{ foo: 'bar' }}
+            />
+        );
 
-            // not call on start
-            await waitFor(() => {
-                expect(dispatch).not.toHaveBeenCalled();
-            });
-            expect(enableGetChoices).toHaveBeenCalledWith({ q: '' });
+        wrapper.instance().setFilter('search_me');
 
-            const { setFilter } = children.mock.calls[0][0];
-            setFilter('hello world');
+        assert.deepEqual(crudGetMatchingAccumulate.mock.calls[1], [
+            'posts',
+            'comments@post_id',
+            {
+                page: 1,
+                perPage: 5,
+            },
+            {
+                field: 'foo',
+                order: 'ASC',
+            },
+            {
+                foo: 'bar',
+                q: 'search_me',
+            },
+        ]);
+    });
 
-            await waitFor(() => {
-                expect(dispatch).toHaveBeenCalledTimes(5);
-            });
-            expect(enableGetChoices).toHaveBeenCalledWith({ q: 'hello world' });
-        });
+    it('should call crudGetMatchingAccumulate when setFilter is called', () => {
+        const crudGetMatchingAccumulate = jest.fn();
+        const wrapper = shallow(
+            <ReferenceInputController
+                {...defaultProps}
+                allowEmpty
+                crudGetMatchingAccumulate={crudGetMatchingAccumulate}
+            />
+        );
+        wrapper.instance().setFilter('bar');
+        assert.deepEqual(crudGetMatchingAccumulate.mock.calls[1], [
+            'posts',
+            'comments@post_id',
+            {
+                page: 1,
+                perPage: 25,
+            },
+            {
+                field: 'id',
+                order: 'DESC',
+            },
+            {
+                q: 'bar',
+            },
+        ]);
+    });
 
-        it('should fetch current value using getMany even if enableGetChoices is returning false', async () => {
-            const children = jest.fn().mockReturnValue(<p>child</p>);
-            const { dispatch } = renderWithRedux(
-                <DataProviderContext.Provider value={dataProvider}>
-                    <ReferenceInputController
-                        {...{
-                            ...defaultProps,
-                            input: { value: 1 } as any,
-                            enableGetChoices: () => false,
-                        }}
-                    >
-                        {children}
-                    </ReferenceInputController>
-                </DataProviderContext.Provider>
-            );
+    it('should use custom filterToQuery function prop', () => {
+        const crudGetMatchingAccumulate = jest.fn();
+        const wrapper = shallow(
+            <ReferenceInputController
+                {...defaultProps}
+                allowEmpty
+                crudGetMatchingAccumulate={crudGetMatchingAccumulate}
+                filterToQuery={searchText => ({ foo: searchText })}
+            />
+        );
+        wrapper.instance().setFilter('bar');
+        assert.deepEqual(crudGetMatchingAccumulate.mock.calls[1], [
+            'posts',
+            'comments@post_id',
+            {
+                page: 1,
+                perPage: 25,
+            },
+            {
+                field: 'id',
+                order: 'DESC',
+            },
+            {
+                foo: 'bar',
+            },
+        ]);
+    });
 
-            await waitFor(() => {
-                expect(dispatch).toBeCalledTimes(5); // 0 for getList, 5 for getMany
-                expect(dispatch.mock.calls[0][0]).toEqual({
-                    type: 'RA/CRUD_GET_MANY',
-                    payload: { ids: [1] },
-                    meta: { resource: 'posts' },
-                });
-            });
-        });
+    it('should call crudGetManyAccumulate on mount if value is set', () => {
+        const crudGetManyAccumulate = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...defaultProps}
+                allowEmpty
+                crudGetManyAccumulate={crudGetManyAccumulate}
+                input={{ value: 5 }}
+            />
+        );
+        assert.deepEqual(crudGetManyAccumulate.mock.calls[0], ['posts', [5]]);
+    });
+
+    it('should pass onChange down to child component', () => {
+        const children = jest.fn();
+        const onChange = jest.fn();
+        shallow(
+            <ReferenceInputController
+                {...defaultProps}
+                allowEmpty
+                onChange={onChange}
+            >
+                {children}
+            </ReferenceInputController>
+        );
+        assert.deepEqual(children.mock.calls[0][0].onChange, onChange);
+    });
+
+    it('should only call crudGetMatchingAccumulate when calling setFilter', () => {
+        const crudGetMatchingAccumulate = jest.fn();
+        const crudGetManyAccumulate = jest.fn();
+        const wrapper = shallow(
+            <ReferenceInputController
+                {...defaultProps}
+                allowEmpty
+                input={{ value: 5 }}
+                crudGetManyAccumulate={crudGetManyAccumulate}
+                crudGetMatchingAccumulate={crudGetMatchingAccumulate}
+            />
+        );
+        assert.equal(crudGetMatchingAccumulate.mock.calls.length, 1);
+        assert.equal(crudGetManyAccumulate.mock.calls.length, 1);
+
+        wrapper.instance().setFilter('bar');
+        assert.equal(crudGetMatchingAccumulate.mock.calls.length, 2);
+        assert.equal(crudGetManyAccumulate.mock.calls.length, 1);
+    });
+
+    it('should only call crudGetMatching when props are changed from outside', () => {
+        const crudGetMatchingAccumulate = jest.fn();
+        const crudGetManyAccumulate = jest.fn();
+        const ControllerWrapper = props => (
+            <ReferenceInputController
+                {...defaultProps}
+                allowEmpty
+                input={{ value: 5 }}
+                crudGetManyAccumulate={crudGetManyAccumulate}
+                crudGetMatchingAccumulate={crudGetMatchingAccumulate}
+                {...props}
+            >
+                {() => null}
+            </ReferenceInputController>
+        );
+
+        const { rerender } = render(<ControllerWrapper />);
+        assert.equal(crudGetMatchingAccumulate.mock.calls.length, 1);
+        assert.equal(crudGetManyAccumulate.mock.calls.length, 1);
+
+        rerender(<ControllerWrapper filter={{ foo: 'bar' }} />);
+
+        assert.equal(crudGetManyAccumulate.mock.calls.length, 1);
+        assert.deepEqual(crudGetMatchingAccumulate.mock.calls[1], [
+            'posts',
+            'comments@post_id',
+            { page: 1, perPage: 25 },
+            { field: 'id', order: 'DESC' },
+            { foo: 'bar' },
+        ]);
+
+        rerender(
+            <ControllerWrapper
+                filter={{ foo: 'bar' }}
+                sort={{ field: 'foo', order: 'ASC' }}
+            />
+        );
+
+        assert.equal(crudGetManyAccumulate.mock.calls.length, 1);
+        assert.deepEqual(crudGetMatchingAccumulate.mock.calls[2], [
+            'posts',
+            'comments@post_id',
+            { page: 1, perPage: 25 },
+            { field: 'foo', order: 'ASC' },
+            { foo: 'bar' },
+        ]);
+
+        rerender(
+            <ControllerWrapper
+                filter={{ foo: 'bar' }}
+                sort={{ field: 'foo', order: 'ASC' }}
+                perPage={42}
+            />
+        );
+
+        assert.equal(crudGetManyAccumulate.mock.calls.length, 1);
+        assert.deepEqual(crudGetMatchingAccumulate.mock.calls[3], [
+            'posts',
+            'comments@post_id',
+            { page: 1, perPage: 42 },
+            { field: 'foo', order: 'ASC' },
+            { foo: 'bar' },
+        ]);
+    });
+
+    it('should only call crudGetMatchingAccumulate when props are changed from outside', () => {
+        const crudGetMatchingAccumulate = jest.fn();
+        const crudGetManyAccumulate = jest.fn();
+        const wrapper = shallow(
+            <ReferenceInputController
+                {...defaultProps}
+                allowEmpty
+                input={{ value: 5 }}
+                crudGetManyAccumulate={crudGetManyAccumulate}
+                crudGetMatchingAccumulate={crudGetMatchingAccumulate}
+            />
+        );
+        expect(crudGetMatchingAccumulate).toHaveBeenCalledTimes(1);
+        expect(crudGetManyAccumulate).toHaveBeenCalledTimes(1);
+
+        wrapper.setProps({ filter: { foo: 'bar' } });
+        expect(crudGetMatchingAccumulate.mock.calls.length).toBe(2);
+        expect(crudGetManyAccumulate).toHaveBeenCalledTimes(1);
+
+        wrapper.setProps({ sort: { field: 'foo', order: 'ASC' } });
+        expect(crudGetMatchingAccumulate.mock.calls.length).toBe(3);
+        expect(crudGetManyAccumulate).toHaveBeenCalledTimes(1);
+
+        wrapper.setProps({ perPage: 42 });
+        expect(crudGetMatchingAccumulate.mock.calls.length).toBe(4);
+        expect(crudGetManyAccumulate).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call crudGetManyAccumulate when input value changes', () => {
+        const crudGetManyAccumulate = jest.fn();
+        const wrapper = shallow(
+            <ReferenceInputController
+                {...defaultProps}
+                input={{ value: 5 }}
+                allowEmpty
+                crudGetManyAccumulate={crudGetManyAccumulate}
+            />
+        );
+        assert.equal(crudGetManyAccumulate.mock.calls.length, 1);
+        wrapper.setProps({ input: { value: 6 } });
+        assert.equal(crudGetManyAccumulate.mock.calls.length, 2);
+    });
+
+    it('should call crudGetManyAccumulate and crudGetMatchingAccumulate when record changes', () => {
+        const crudGetManyAccumulate = jest.fn();
+        const crudGetMatchingAccumulate = jest.fn();
+        const wrapper = shallow(
+            <ReferenceInputController
+                {...defaultProps}
+                allowEmpty
+                input={{ value: 5 }}
+                crudGetManyAccumulate={crudGetManyAccumulate}
+                crudGetMatchingAccumulate={crudGetMatchingAccumulate}
+            />
+        );
+        assert.equal(crudGetMatchingAccumulate.mock.calls.length, 1);
+        assert.equal(crudGetManyAccumulate.mock.calls.length, 1);
+        wrapper.setProps({ record: { id: 1 } });
+        assert.equal(crudGetMatchingAccumulate.mock.calls.length, 2);
+        assert.equal(crudGetManyAccumulate.mock.calls.length, 2);
     });
 });

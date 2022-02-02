@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { render } from '@testing-library/react';
+import React from 'react';
+import { shallow } from 'enzyme';
 
 import { FormDataConsumerView } from './FormDataConsumer';
 
@@ -8,7 +8,7 @@ describe('FormDataConsumerView', () => {
         const children = jest.fn();
         const formData = { id: 123, title: 'A title' };
 
-        render(
+        shallow(
             <FormDataConsumerView
                 form="a-form"
                 formData={formData}
@@ -29,7 +29,7 @@ describe('FormDataConsumerView', () => {
         });
         const formData = { id: 123, title: 'A title', authors: [{ id: 0 }] };
 
-        render(
+        shallow(
             <FormDataConsumerView
                 form="a-form"
                 source="authors[0]"

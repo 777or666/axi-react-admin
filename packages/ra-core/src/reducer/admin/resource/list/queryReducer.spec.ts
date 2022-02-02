@@ -1,4 +1,4 @@
-import expect from 'expect';
+import assert from 'assert';
 import queryReducer, { SORT_ASC, SORT_DESC } from './queryReducer';
 
 describe('Query Reducer', () => {
@@ -13,7 +13,7 @@ describe('Query Reducer', () => {
                     payload: 2,
                 }
             );
-            expect(updatedState.page).toEqual(2);
+            assert.equal(updatedState.page, 2);
         });
         it('should not update the filter', () => {
             const initialFilter = {};
@@ -27,7 +27,7 @@ describe('Query Reducer', () => {
                     payload: 2,
                 }
             );
-            expect(updatedState.filter).toEqual(initialFilter);
+            assert.equal(updatedState.filter, initialFilter);
         });
     });
     describe('SET_FILTER action', () => {
@@ -36,10 +36,10 @@ describe('Query Reducer', () => {
                 {},
                 {
                     type: 'SET_FILTER',
-                    payload: { filter: { title: 'foo' } },
+                    payload: { title: 'foo' },
                 }
             );
-            expect(updatedState.filter).toEqual({ title: 'foo' });
+            assert.deepEqual(updatedState.filter, { title: 'foo' });
         });
 
         it('should replace existing filter with given value', () => {
@@ -51,26 +51,11 @@ describe('Query Reducer', () => {
                 },
                 {
                     type: 'SET_FILTER',
-                    payload: { filter: { title: 'bar' } },
+                    payload: { title: 'bar' },
                 }
             );
 
-            expect(updatedState.filter).toEqual({ title: 'bar' });
-        });
-
-        it('should add new filter and displayedFilter with given value when set', () => {
-            const updatedState = queryReducer(
-                {},
-                {
-                    type: 'SET_FILTER',
-                    payload: {
-                        filter: { title: 'foo' },
-                        displayedFilters: { title: true },
-                    },
-                }
-            );
-            expect(updatedState.filter).toEqual({ title: 'foo' });
-            expect(updatedState.displayedFilters).toEqual({ title: true });
+            assert.deepEqual(updatedState.filter, { title: 'bar' });
         });
 
         it('should reset page to 1', () => {
@@ -78,108 +63,7 @@ describe('Query Reducer', () => {
                 { page: 3 },
                 { type: 'SET_FILTER', payload: {} }
             );
-            expect(updatedState.page).toEqual(1);
-        });
-    });
-    describe('SHOW_FILTER action', () => {
-        it('should add the filter to the displayed filters and set the filter value', () => {
-            const updatedState = queryReducer(
-                {
-                    filter: { bar: 1 },
-                    displayedFilters: { bar: true },
-                },
-                {
-                    type: 'SHOW_FILTER',
-                    payload: { filterName: 'foo', defaultValue: 'bar' },
-                }
-            );
-            expect(updatedState.filter).toEqual({ bar: 1, foo: 'bar' });
-            expect(updatedState.displayedFilters).toEqual({
-                bar: true,
-                foo: true,
-            });
-        });
-
-        it('should work with false default value', () => {
-            const updatedState = queryReducer(
-                { filter: {}, displayedFilters: {} },
-                {
-                    type: 'SHOW_FILTER',
-                    payload: { filterName: 'foo', defaultValue: false },
-                }
-            );
-            expect(updatedState.filter).toEqual({ foo: false });
-            expect(updatedState.displayedFilters).toEqual({
-                foo: true,
-            });
-        });
-
-        it('should work without default value', () => {
-            const updatedState = queryReducer(
-                {
-                    filter: { bar: 1 },
-                    displayedFilters: { bar: true },
-                },
-                {
-                    type: 'SHOW_FILTER',
-                    payload: { filterName: 'foo' },
-                }
-            );
-            expect(updatedState.filter).toEqual({ bar: 1 });
-            expect(updatedState.displayedFilters).toEqual({
-                bar: true,
-                foo: true,
-            });
-        });
-
-        it('should not change an already shown filter', () => {
-            const updatedState = queryReducer(
-                {
-                    filter: { foo: 1 },
-                    displayedFilters: { foo: true },
-                },
-                {
-                    type: 'SHOW_FILTER',
-                    payload: { filterName: 'foo', defaultValue: 'bar' },
-                }
-            );
-            expect(updatedState.filter).toEqual({ foo: 1 });
-            expect(updatedState.displayedFilters).toEqual({ foo: true });
-        });
-    });
-    describe('HIDE_FILTER action', () => {
-        it('should remove the filter from the displayed filters and reset the filter value', () => {
-            const updatedState = queryReducer(
-                {
-                    filter: { foo: 2, bar: 1 },
-                    displayedFilters: { foo: true, bar: true },
-                },
-                {
-                    type: 'HIDE_FILTER',
-                    payload: 'bar',
-                }
-            );
-            expect(updatedState.filter).toEqual({ foo: 2 });
-            expect(updatedState.displayedFilters).toEqual({
-                foo: true,
-            });
-        });
-
-        it('should do nothing if the filter is already hidden', () => {
-            const updatedState = queryReducer(
-                {
-                    filter: { foo: 2 },
-                    displayedFilters: { foo: true },
-                },
-                {
-                    type: 'HIDE_FILTER',
-                    payload: 'bar',
-                }
-            );
-            expect(updatedState.filter).toEqual({ foo: 2 });
-            expect(updatedState.displayedFilters).toEqual({
-                foo: true,
-            });
+            assert.equal(updatedState.page, 1);
         });
     });
     describe('SET_SORT action', () => {
@@ -191,7 +75,7 @@ describe('Query Reducer', () => {
                     payload: { sort: 'foo' },
                 }
             );
-            expect(updatedState).toEqual({
+            assert.deepEqual(updatedState, {
                 sort: 'foo',
                 order: SORT_ASC,
                 page: 1,
@@ -205,7 +89,7 @@ describe('Query Reducer', () => {
                     payload: { sort: 'foo', order: SORT_DESC },
                 }
             );
-            expect(updatedState).toEqual({
+            assert.deepEqual(updatedState, {
                 sort: 'foo',
                 order: SORT_DESC,
                 page: 1,
@@ -223,7 +107,7 @@ describe('Query Reducer', () => {
                     payload: { sort: 'foo' },
                 }
             );
-            expect(updatedState).toEqual({
+            assert.deepEqual(updatedState, {
                 sort: 'foo',
                 order: SORT_ASC,
                 page: 1,
@@ -241,7 +125,7 @@ describe('Query Reducer', () => {
                     payload: { sort: 'foo', order: SORT_DESC },
                 }
             );
-            expect(updatedState).toEqual({
+            assert.deepEqual(updatedState, {
                 sort: 'foo',
                 order: SORT_ASC,
                 page: 1,
@@ -259,7 +143,7 @@ describe('Query Reducer', () => {
                     payload: 25,
                 }
             );
-            expect(updatedState.perPage).toEqual(25);
+            assert.equal(updatedState.perPage, 25);
         });
         it('should reset page to 1', () => {
             const updatedState = queryReducer(
@@ -272,7 +156,7 @@ describe('Query Reducer', () => {
                     payload: 25,
                 }
             );
-            expect(updatedState.page).toEqual(1);
+            assert.equal(updatedState.page, 1);
         });
     });
 });

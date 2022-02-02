@@ -1,57 +1,35 @@
-import * as React from 'react';
-import { AnchorHTMLAttributes, memo, FC } from 'react';
+import React, { SFC, HtmlHTMLAttributes } from 'react';
 import get from 'lodash/get';
-import Typography from '@material-ui/core/Typography';
-import { Link } from '@material-ui/core';
-import { useRecordContext } from 'ra-core';
+import pure from 'recompose/pure';
 
-import sanitizeFieldRestProps from './sanitizeFieldRestProps';
-import { PublicFieldProps, InjectedFieldProps, fieldPropTypes } from './types';
+import sanitizeRestProps from './sanitizeRestProps';
+import { FieldProps, InjectedFieldProps, fieldPropTypes } from './types';
 
 // useful to prevent click bubbling in a datagrid with rowClick
 const stopPropagation = e => e.stopPropagation();
 
-const EmailField: FC<EmailFieldProps> = memo(props => {
-    const { className, source, emptyText, ...rest } = props;
-    const record = useRecordContext(props);
-    const value = get(record, source);
+const EmailField: SFC<
+    FieldProps & InjectedFieldProps & HtmlHTMLAttributes<HTMLAnchorElement>
+> = ({ className, source, record = {}, ...rest }) => (
+    <a
+        className={className}
+        href={`mailto:${get(record, source)}`}
+        onClick={stopPropagation}
+        {...sanitizeRestProps(rest)}
+    >
+        {get(record, source)}
+    </a>
+);
 
-    if (value == null) {
-        return emptyText ? (
-            <Typography
-                component="span"
-                variant="body2"
-                className={className}
-                {...sanitizeFieldRestProps(rest)}
-            >
-                {emptyText}
-            </Typography>
-        ) : null;
-    }
+const EnhancedEmailField = pure<
+    FieldProps & HtmlHTMLAttributes<HTMLAnchorElement>
+>(EmailField);
 
-    return (
-        <Link
-            className={className}
-            href={`mailto:${value}`}
-            onClick={stopPropagation}
-            variant="body2"
-            {...sanitizeFieldRestProps(rest)}
-        >
-            {value}
-        </Link>
-    );
-});
-
-EmailField.defaultProps = {
+EnhancedEmailField.defaultProps = {
     addLabel: true,
 };
 
-EmailField.propTypes = fieldPropTypes;
-EmailField.displayName = 'EmailField';
+EnhancedEmailField.propTypes = fieldPropTypes;
+EnhancedEmailField.displayName = 'EnhancedEmailField';
 
-export interface EmailFieldProps
-    extends PublicFieldProps,
-        InjectedFieldProps,
-        AnchorHTMLAttributes<HTMLAnchorElement> {}
-
-export default EmailField;
+export default EnhancedEmailField;

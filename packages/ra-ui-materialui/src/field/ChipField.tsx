@@ -1,71 +1,45 @@
-import * as React from 'react';
-import { memo, FC } from 'react';
+import React, { SFC } from 'react';
+import compose from 'recompose/compose';
 import get from 'lodash/get';
+import pure from 'recompose/pure';
 import Chip, { ChipProps } from '@material-ui/core/Chip';
-import Typography from '@material-ui/core/Typography';
-import { makeStyles } from '@material-ui/core/styles';
+import { withStyles, WithStyles, createStyles } from '@material-ui/core/styles';
 import classnames from 'classnames';
-import { useRecordContext } from 'ra-core';
 
-import sanitizeFieldRestProps from './sanitizeFieldRestProps';
-import { PublicFieldProps, InjectedFieldProps, fieldPropTypes } from './types';
+import sanitizeRestProps from './sanitizeRestProps';
+import { FieldProps, InjectedFieldProps, fieldPropTypes } from './types';
 
-const useStyles = makeStyles(
-    {
-        chip: { margin: 4, cursor: 'inherit' },
-    },
-    { name: 'RaChipField' }
-);
-
-export const ChipField: FC<ChipFieldProps> = memo(props => {
-    const {
-        className,
-        classes: classesOverride,
-        source,
-        emptyText,
-        ...rest
-    } = props;
-    const record = useRecordContext(props);
-    const classes = useStyles(props);
-    const value = get(record, source);
-
-    if (value == null && emptyText) {
-        return (
-            <Typography
-                component="span"
-                variant="body2"
-                className={className}
-                {...sanitizeFieldRestProps(rest)}
-            >
-                {emptyText}
-            </Typography>
-        );
-    }
-
-    return (
-        <Chip
-            className={classnames(classes.chip, className)}
-            label={value}
-            {...sanitizeFieldRestProps(rest)}
-        />
-    );
+const styles = createStyles({
+    chip: { margin: 4 },
 });
 
-ChipField.defaultProps = {
+export const ChipField: SFC<
+    FieldProps & InjectedFieldProps & WithStyles<typeof styles> & ChipProps
+> = ({ className, classes, source, record = {}, ...rest }) => (
+    <Chip
+        className={classnames(classes.chip, className)}
+        label={get(record, source)}
+        {...sanitizeRestProps(rest)}
+    />
+);
+
+const EnhancedChipField = compose<
+    FieldProps & InjectedFieldProps & WithStyles<typeof styles> & ChipProps,
+    FieldProps & ChipProps
+>(
+    withStyles(styles),
+    pure
+)(ChipField);
+
+EnhancedChipField.defaultProps = {
     addLabel: true,
 };
 
-ChipField.propTypes = {
-    // @ts-ignore
+EnhancedChipField.propTypes = {
     ...ChipField.propTypes,
     ...fieldPropTypes,
 };
 
-ChipField.displayName = 'ChipField';
+EnhancedChipField.displayName = 'EnhancedChipField';
 
-export interface ChipFieldProps
-    extends PublicFieldProps,
-        InjectedFieldProps,
-        Omit<ChipProps, 'label'> {}
-
-export default ChipField;
+export default EnhancedChipField;

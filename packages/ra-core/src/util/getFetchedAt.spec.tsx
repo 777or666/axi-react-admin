@@ -1,4 +1,4 @@
-import expect from 'expect';
+import assert from 'assert';
 
 import getFetchedAt from './getFetchedAt';
 
@@ -8,7 +8,7 @@ describe('getFetchedAt', () => {
         const now = new Date();
         const newRecordIds = [1, 2, 3];
 
-        expect(getFetchedAt(newRecordIds, {}, now, cacheDuration)).toEqual({
+        assert.deepEqual(getFetchedAt(newRecordIds, {}, now, cacheDuration), {
             1: now,
             2: now,
             3: now,
@@ -26,14 +26,15 @@ describe('getFetchedAt', () => {
             4: validDate,
         };
 
-        expect(
-            getFetchedAt(newRecordIds, oldFetchedData, now, cacheDuration)
-        ).toEqual({
-            1: now,
-            2: now,
-            3: now,
-            4: validDate,
-        });
+        assert.deepEqual(
+            getFetchedAt(newRecordIds, oldFetchedData, now, cacheDuration),
+            {
+                1: now,
+                2: now,
+                3: now,
+                4: validDate,
+            }
+        );
     });
 
     it('should discard old date if it is not valid anymore', () => {
@@ -47,13 +48,14 @@ describe('getFetchedAt', () => {
             4: invalidDate,
         };
 
-        expect(
-            getFetchedAt(newRecordIds, oldFetchedData, now, cacheDuration)
-        ).toEqual({
-            1: now,
-            2: now,
-            3: now,
-        });
+        assert.deepEqual(
+            getFetchedAt(newRecordIds, oldFetchedData, now, cacheDuration),
+            {
+                1: now,
+                2: now,
+                3: now,
+            }
+        );
     });
 
     it('should update old date if id present in newRecordsId even if not valid anymore', () => {
@@ -70,12 +72,13 @@ describe('getFetchedAt', () => {
             2: invalidDate,
         };
 
-        expect(
-            getFetchedAt(newRecordIds, oldFetchedData, now, cacheDuration)
-        ).toEqual({
-            1: now,
-            2: now,
-            3: now,
-        });
+        assert.deepEqual(
+            getFetchedAt(newRecordIds, oldFetchedData, now, cacheDuration),
+            {
+                1: now,
+                2: now,
+                3: now,
+            }
+        );
     });
 });

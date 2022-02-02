@@ -1,50 +1,44 @@
-import * as React from 'react';
-import { memo, FC, ElementType } from 'react';
+import React, { SFC } from 'react';
 import get from 'lodash/get';
+import pure from 'recompose/pure';
 import Typography, { TypographyProps } from '@material-ui/core/Typography';
-import { useRecordContext } from 'ra-core';
 
-import sanitizeFieldRestProps from './sanitizeFieldRestProps';
-import { PublicFieldProps, InjectedFieldProps, fieldPropTypes } from './types';
+import sanitizeRestProps from './sanitizeRestProps';
+import { FieldProps, InjectedFieldProps, fieldPropTypes } from './types';
 
-const TextField: FC<TextFieldProps> = memo(props => {
-    const { className, source, emptyText, ...rest } = props;
-    const record = useRecordContext(props);
+const TextField: SFC<FieldProps & InjectedFieldProps & TypographyProps> = ({
+    className,
+    source,
+    record = {},
+    ...rest
+}) => {
     const value = get(record, source);
-
     return (
         <Typography
             component="span"
-            variant="body2"
+            variant="body1"
             className={className}
-            {...sanitizeFieldRestProps(rest)}
+            {...sanitizeRestProps(rest)}
         >
-            {value != null && typeof value !== 'string'
-                ? JSON.stringify(value)
-                : value || emptyText}
+            {value && typeof value !== 'string' ? JSON.stringify(value) : value}
         </Typography>
     );
-});
+};
 
-// what? TypeScript loses the displayName if we don't set it explicitly
+// wat? TypeScript looses the displayName if we don't set it explicitly
 TextField.displayName = 'TextField';
 
-TextField.defaultProps = {
+const EnhancedTextField = pure(TextField);
+
+EnhancedTextField.defaultProps = {
     addLabel: true,
 };
 
-TextField.propTypes = {
-    // @ts-ignore
+EnhancedTextField.propTypes = {
     ...Typography.propTypes,
     ...fieldPropTypes,
 };
 
-export interface TextFieldProps
-    extends PublicFieldProps,
-        InjectedFieldProps,
-        TypographyProps {
-    // TypographyProps do not expose the component props, see https://github.com/mui-org/material-ui/issues/19512
-    component?: ElementType<any>;
-}
+EnhancedTextField.displayName = 'EnhancedTextField';
 
-export default TextField;
+export default EnhancedTextField;

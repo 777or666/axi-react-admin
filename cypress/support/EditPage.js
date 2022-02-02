@@ -2,28 +2,19 @@ export default url => ({
     elements: {
         body: 'body',
         deleteButton: '.ra-delete-button',
-        addBacklinkButton: '.button-add-backlinks',
         input: (name, type = 'input') => {
             if (type === 'rich-text-input') {
                 return `.ra-input-${name} .ql-editor`;
-            }
-            if (type === 'checkbox-group-input') {
-                return `.ra-input-${name} label`;
-            }
-            if (type === 'reference-array-input') {
-                return `.ra-input div[role=combobox]`;
             }
             return `.edit-page [name='${name}']`;
         },
         inputs: `.ra-input`,
         tabs: `.form-tab`,
-        snackbar: 'div[role="alert"]',
+        snackbar: 'div[role="alertdialog"]',
         submitButton: ".edit-page div[role='toolbar'] button[type='submit']",
         cloneButton: '.button-clone',
         tab: index => `.form-tab:nth-of-type(${index})`,
         title: '#react-admin-title',
-        userMenu: 'button[title="Profile"]',
-        logout: '.logout',
     },
 
     navigate() {
@@ -44,12 +35,12 @@ export default url => ({
         }
     },
 
-    clickInput(name, type = 'input') {
-        cy.get(this.elements.input(name, type)).click();
+    clickInput(name) {
+        cy.get(this.elements.input(name)).click();
     },
 
     gotoTab(index) {
-        cy.get(this.elements.tab(index)).click({ force: true });
+        cy.get(this.elements.tab(index)).click();
     },
 
     submit() {
@@ -65,10 +56,5 @@ export default url => ({
 
     clone() {
         cy.get(this.elements.cloneButton).click();
-    },
-
-    logout() {
-        cy.get(this.elements.userMenu).click();
-        cy.get(this.elements.logout).click();
     },
 });

@@ -1,12 +1,28 @@
-import * as React from 'react';
-import { memo, FC } from 'react';
+import React, { SFC, ReactElement } from 'react';
 import PropTypes from 'prop-types';
 import get from 'lodash/get';
-import { ChoicesProps, useChoices, useRecordContext } from 'ra-core';
-import { Typography, TypographyProps } from '@material-ui/core';
+import pure from 'recompose/pure';
+import compose from 'recompose/compose';
+import { withTranslate, TranslationContextProps } from 'ra-core';
+import Typography from '@material-ui/core/Typography';
 
-import sanitizeFieldRestProps from './sanitizeFieldRestProps';
-import { PublicFieldProps, InjectedFieldProps, fieldPropTypes } from './types';
+import sanitizeRestProps from './sanitizeRestProps';
+import { FieldProps, InjectedFieldProps, fieldPropTypes } from './types';
+
+interface Choice {
+    id: string;
+    name: string;
+}
+
+type OptionTextElement = ReactElement<{ record: Choice }>;
+type OptionText = (choice: Choice) => string | OptionTextElement;
+
+interface Props extends FieldProps {
+    choices: Choice[];
+    optionValue: string;
+    optionText: OptionTextElement | OptionText | string;
+    translateChoice: boolean;
+}
 
 /**
  * Display a value in an enumeration
@@ -22,7 +38,7 @@ import { PublicFieldProps, InjectedFieldProps, fieldPropTypes } from './types';
  *
  * By default, the text is built by
  * - finding a choice where the 'id' property equals the field value
- * - using the 'name' property as the option text
+ * - using the 'name' property an the option text
  *
  * You can also customize the properties to use for the value and text,
  * thanks to the 'optionValue' and 'optionText' attributes.
@@ -67,53 +83,42 @@ import { PublicFieldProps, InjectedFieldProps, fieldPropTypes } from './types';
  *
  * **Tip**: <ReferenceField> sets `translateChoice` to false by default.
  */
-export const SelectField: FC<SelectFieldProps> = memo(props => {
-    const {
-        className,
-        emptyText,
-        source,
-        choices,
-        optionValue,
-        optionText,
-        translateChoice,
-        ...rest
-    } = props;
-    const record = useRecordContext(props);
+export const SelectField: SFC<
+    Props & InjectedFieldProps & TranslationContextProps
+> = ({
+    className,
+    source,
+    record,
+    choices,
+    optionValue,
+    optionText,
+    translate,
+    translateChoice,
+    ...rest
+}) => {
     const value = get(record, source);
-    const { getChoiceText, getChoiceValue } = useChoices({
-        optionText,
-        optionValue,
-        translateChoice,
-    });
-
-    const choice = choices.find(choice => getChoiceValue(choice) === value);
-
+    const choice = choices.find(c => c[optionValue] === value);
     if (!choice) {
-        return emptyText ? (
-            <Typography
-                component="span"
-                variant="body2"
-                className={className}
-                {...sanitizeFieldRestProps(rest)}
-            >
-                {emptyText}
-            </Typography>
-        ) : null;
+        return null;
     }
-
-    let choiceText = getChoiceText(choice);
-
+    const choiceName = React.isValidElement(optionText) // eslint-disable-line no-nested-ternary
+        ? React.cloneElement(optionText, { record: choice })
+        : typeof optionText === 'function'
+        ? optionText(choice)
+        : choice[optionText];
     return (
         <Typography
             component="span"
-            variant="body2"
+            variant="body1"
             className={className}
-            {...sanitizeFieldRestProps(rest)}
+            {...sanitizeRestProps(rest)}
         >
-            {choiceText}
+            {translateChoice
+                ? translate(choiceName, { _: choiceName })
+                : choiceName}
         </Typography>
     );
-});
+};
 
 SelectField.defaultProps = {
     optionText: 'name',
@@ -121,12 +126,21 @@ SelectField.defaultProps = {
     translateChoice: true,
 };
 
-SelectField.defaultProps = {
+const enhance = compose<
+    Props & InjectedFieldProps & TranslationContextProps,
+    Props & TranslationContextProps
+>(
+    pure,
+    withTranslate
+);
+
+const EnhancedSelectField = enhance(SelectField);
+
+EnhancedSelectField.defaultProps = {
     addLabel: true,
 };
 
-SelectField.propTypes = {
-    // @ts-ignore
+EnhancedSelectField.propTypes = {
     ...Typography.propTypes,
     ...fieldPropTypes,
     choices: PropTypes.arrayOf(PropTypes.object).isRequired,
@@ -139,12 +153,6 @@ SelectField.propTypes = {
     translateChoice: PropTypes.bool,
 };
 
-export interface SelectFieldProps
-    extends ChoicesProps,
-        PublicFieldProps,
-        InjectedFieldProps,
-        TypographyProps {}
+EnhancedSelectField.displayName = 'EnhancedSelectField';
 
-SelectField.displayName = 'SelectField';
-
-export default SelectField;
+export default EnhancedSelectField;

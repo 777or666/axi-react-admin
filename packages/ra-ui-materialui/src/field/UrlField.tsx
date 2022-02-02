@@ -1,51 +1,30 @@
-import * as React from 'react';
-import { AnchorHTMLAttributes, memo, FC } from 'react';
+import React, { SFC, HtmlHTMLAttributes } from 'react';
 import get from 'lodash/get';
-import sanitizeFieldRestProps from './sanitizeFieldRestProps';
-import { Typography, Link } from '@material-ui/core';
-import { useRecordContext } from 'ra-core';
-import { PublicFieldProps, InjectedFieldProps, fieldPropTypes } from './types';
+import pure from 'recompose/pure';
+import sanitizeRestProps from './sanitizeRestProps';
+import { FieldProps, InjectedFieldProps, fieldPropTypes } from './types';
 
-const UrlField: FC<UrlFieldProps> = memo(props => {
-    const { className, emptyText, source, ...rest } = props;
-    const record = useRecordContext(props);
-    const value = get(record, source);
+const UrlField: SFC<
+    FieldProps & InjectedFieldProps & HtmlHTMLAttributes<HTMLAnchorElement>
+> = ({ className, source, record = {}, ...rest }) => (
+    <a
+        className={className}
+        href={get(record, source)}
+        {...sanitizeRestProps(rest)}
+    >
+        {get(record, source)}
+    </a>
+);
 
-    if (value == null) {
-        return (
-            <Typography
-                component="span"
-                variant="body2"
-                className={className}
-                {...sanitizeFieldRestProps(rest)}
-            >
-                {emptyText}
-            </Typography>
-        );
-    }
+const EnhancedUrlField = pure<
+    FieldProps & HtmlHTMLAttributes<HTMLAnchorElement>
+>(UrlField);
 
-    return (
-        <Link
-            className={className}
-            href={value}
-            variant="body2"
-            {...sanitizeFieldRestProps(rest)}
-        >
-            {value}
-        </Link>
-    );
-});
-
-UrlField.defaultProps = {
+EnhancedUrlField.defaultProps = {
     addLabel: true,
 };
 
-UrlField.propTypes = fieldPropTypes;
-UrlField.displayName = 'UrlField';
+EnhancedUrlField.propTypes = fieldPropTypes;
+EnhancedUrlField.displayName = 'EnhancedUrlField';
 
-export interface UrlFieldProps
-    extends PublicFieldProps,
-        InjectedFieldProps,
-        AnchorHTMLAttributes<HTMLAnchorElement> {}
-
-export default UrlField;
+export default EnhancedUrlField;

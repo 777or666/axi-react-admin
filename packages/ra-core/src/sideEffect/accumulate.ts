@@ -1,4 +1,5 @@
-import { cancel, delay, fork, put, takeEvery } from 'redux-saga/effects';
+import { delay } from 'redux-saga';
+import { call, cancel, fork, put, takeEvery } from 'redux-saga/effects';
 
 /**
  * Distinct reducer on ids
@@ -27,7 +28,7 @@ export const finalizeFactory = (tasks, accumulations) =>
      */
     function* finalize(key, actionCreator) {
         // combined with cancel(), this debounces the calls
-        yield delay(50);
+        yield call(delay, 50);
 
         // Get the latest accumulated value for the provided key
         const accumulatedValue = accumulations[key];
@@ -81,14 +82,14 @@ export const accumulateFactory = (tasks, accumulations, finalize) =>
      */
 
     function* accumulate(action) {
-        // For backward compatibility, if no accumulateKey is provided, fallback to the resource
+        // For backward compatibility, if no accumulateKey is provided, we fallback to the resource
         const key = action.meta.accumulateKey || action.payload.resource;
 
         if (tasks[key]) {
             yield cancel(tasks[key]);
         }
 
-        // For backward compatibility, if no accumulateValues function is provided, fallback to the old
+        // For backward compatibility, if no accumulateValues function is provided, we fallback to the old
         // addIds function (used by the crudGetManyAccumulate action for example)
         const accumulateValues = action.meta.accumulateValues || addIds;
 
@@ -99,7 +100,7 @@ export const accumulateFactory = (tasks, accumulations, finalize) =>
         tasks[key] = yield fork(finalize, key, action.meta.accumulate);
     };
 
-export default function* () {
+export default function*() {
     /**
      * Example
      *

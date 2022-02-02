@@ -1,11 +1,11 @@
-import { Record, PaginationPayload, SortPayload } from '../../types';
-import { GET_LIST } from '../../core';
+import { Record, Pagination, Sort } from '../../types';
+import { GET_LIST } from '../../dataFetchActions';
 import { FETCH_END, FETCH_ERROR } from '../fetchActions';
 import { NotificationSideEffect, CallbackSideEffect } from '../../sideEffect';
 
 export const crudGetAll = (
     resource: string,
-    sort: SortPayload,
+    sort: Sort,
     filter: object,
     maxResults: number,
     callback?: CallbackSideEffect
@@ -28,8 +28,8 @@ export const crudGetAll = (
 });
 
 interface RequestPayload {
-    pagination: PaginationPayload;
-    sort: SortPayload;
+    pagination: Pagination;
+    sort: Sort;
     filter: object;
 }
 

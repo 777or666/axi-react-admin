@@ -1,12 +1,11 @@
-import * as React from 'react';
-import { memo, FC } from 'react';
+import React, { SFC } from 'react';
 import PropTypes from 'prop-types';
 import get from 'lodash/get';
+import pure from 'recompose/pure';
 import Typography, { TypographyProps } from '@material-ui/core/Typography';
-import { useRecordContext } from 'ra-core';
 
-import sanitizeFieldRestProps from './sanitizeFieldRestProps';
-import { PublicFieldProps, InjectedFieldProps, fieldPropTypes } from './types';
+import sanitizeRestProps from './sanitizeRestProps';
+import { FieldProps, InjectedFieldProps, fieldPropTypes } from './types';
 
 const toLocaleStringSupportsLocales = (() => {
     // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toLocaleString
@@ -17,6 +16,12 @@ const toLocaleStringSupportsLocales = (() => {
     }
     return false;
 })();
+
+interface Props extends FieldProps {
+    locales?: string | string[];
+    options?: object;
+    showTime?: boolean;
+}
 
 /**
  * Display a date value as a locale string.
@@ -42,34 +47,23 @@ const toLocaleStringSupportsLocales = (() => {
  * // renders the record { id: 1234, new Date('2012-11-07') } as
  * <span>mercredi 7 novembre 2012</span>
  */
-export const DateField: FC<DateFieldProps> = memo(props => {
-    const {
-        className,
-        emptyText,
-        locales,
-        options,
-        showTime = false,
-        source,
-        ...rest
-    } = props;
-    const record = useRecordContext(props);
+
+export const DateField: SFC<Props & InjectedFieldProps & TypographyProps> = ({
+    className,
+    locales,
+    options,
+    record,
+    showTime = false,
+    source,
+    ...rest
+}) => {
     if (!record) {
         return null;
     }
     const value = get(record, source);
-    if (value == null || value === '') {
-        return emptyText ? (
-            <Typography
-                component="span"
-                variant="body2"
-                className={className}
-                {...sanitizeFieldRestProps(rest)}
-            >
-                {emptyText}
-            </Typography>
-        ) : null;
+    if (value == null) {
+        return null;
     }
-
     const date = value instanceof Date ? value : new Date(value);
     const dateString = showTime
         ? toLocaleStringSupportsLocales
@@ -82,21 +76,22 @@ export const DateField: FC<DateFieldProps> = memo(props => {
     return (
         <Typography
             component="span"
-            variant="body2"
+            variant="body1"
             className={className}
-            {...sanitizeFieldRestProps(rest)}
+            {...sanitizeRestProps(rest)}
         >
             {dateString}
         </Typography>
     );
-});
+};
 
-DateField.defaultProps = {
+const EnhancedDateField = pure<Props>(DateField);
+
+EnhancedDateField.defaultProps = {
     addLabel: true,
 };
 
-DateField.propTypes = {
-    // @ts-ignore
+EnhancedDateField.propTypes = {
     ...Typography.propTypes,
     ...fieldPropTypes,
     locales: PropTypes.oneOfType([
@@ -107,15 +102,6 @@ DateField.propTypes = {
     showTime: PropTypes.bool,
 };
 
-DateField.displayName = 'DateField';
+EnhancedDateField.displayName = 'EnhancedDateField';
 
-export interface DateFieldProps
-    extends PublicFieldProps,
-        InjectedFieldProps,
-        TypographyProps {
-    locales?: string | string[];
-    options?: object;
-    showTime?: boolean;
-}
-
-export default DateField;
+export default EnhancedDateField;

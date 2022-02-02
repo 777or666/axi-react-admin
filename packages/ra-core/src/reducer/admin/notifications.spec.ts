@@ -1,4 +1,4 @@
-import expect from 'expect';
+import assert from 'assert';
 import {
     HIDE_NOTIFICATION,
     SHOW_NOTIFICATION,
@@ -8,12 +8,11 @@ import reducer from './notifications';
 
 describe('notifications reducer', () => {
     it('should return empty notification by default', () => {
-        expect(reducer(undefined, { type: 'foo' })).toEqual([]);
+        assert.deepEqual([], reducer(undefined, { type: 'foo' }));
     });
     it('should set autoHideDuration when passed in payload', () => {
-        expect([
-            { message: 'test', type: 'info', autoHideDuration: 1337 },
-        ]).toEqual(
+        assert.deepEqual(
+            [{ message: 'test', type: 'info', autoHideDuration: 1337 }],
             reducer(undefined, {
                 type: SHOW_NOTIFICATION,
                 payload: {
@@ -24,20 +23,9 @@ describe('notifications reducer', () => {
             })
         );
     });
-    it('should set multiLine when passed in payload', () => {
-        expect([{ message: 'test', type: 'info', multiLine: true }]).toEqual(
-            reducer(undefined, {
-                type: SHOW_NOTIFICATION,
-                payload: {
-                    message: 'test',
-                    type: 'info',
-                    multiLine: true,
-                },
-            })
-        );
-    });
     it('should set text and type upon SHOW_NOTIFICATION', () => {
-        expect([{ message: 'foo', type: 'warning' }]).toEqual(
+        assert.deepEqual(
+            [{ message: 'foo', type: 'warning' }],
             reducer(undefined, {
                 type: SHOW_NOTIFICATION,
                 payload: {
@@ -48,7 +36,8 @@ describe('notifications reducer', () => {
         );
     });
     it('should have no elements upon last HIDE_NOTIFICATION', () => {
-        expect([]).toEqual(
+        assert.deepEqual(
+            [],
             reducer([{ message: 'foo', type: 'warning' as NotificationType }], {
                 type: HIDE_NOTIFICATION,
             })
@@ -59,7 +48,8 @@ describe('notifications reducer', () => {
             { message: 'foo', type: 'info' as NotificationType },
             { message: 'bar', type: 'info' as NotificationType },
         ];
-        expect(notifications.length - 1).toEqual(
+        assert.equal(
+            notifications.length - 1,
             reducer(notifications, {
                 type: HIDE_NOTIFICATION,
             }).length

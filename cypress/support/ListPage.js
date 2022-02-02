@@ -4,9 +4,8 @@ export default url => ({
         appLoader: '.app-loader',
         displayedRecords: '.displayed-records',
         filter: name => `.filter-field[data-source='${name}'] input`,
-        filterButton: name => `.filter-field[data-source='${name}']`,
         filterMenuItems: `.new-filter-item`,
-        menuItems: `[role=menuitem]`,
+        menuItems: `[role=menuitem`,
         filterMenuItem: source => `.new-filter-item[data-key="${source}"]`,
         hideFilterButton: source =>
             `.filter-field[data-source="${source}"] .hide-filter`,
@@ -16,16 +15,15 @@ export default url => ({
         recordRows: '.datagrid-body tr',
         viewsColumn: '.datagrid-body tr td:nth-child(7)',
         datagridHeaders: 'th',
-        sortBy: name => `th span[data-field="${name}"]`,
+        sortBy: name => `th span[data-sort="${name}"]`,
         svg: (name, criteria = '') =>
-            `th span[data-field="${name}"] svg${criteria}`,
-        profile: '[aria-label="Profile"]',
+            `th span[data-sort="${name}"] svg${criteria}`,
         logout: '.logout',
         bulkActionsToolbar: '[data-test=bulk-actions-toolbar]',
         customBulkActionsButton:
-            '[data-test=bulk-actions-toolbar] button[aria-label="Reset views"]',
+            '[data-test=bulk-actions-toolbar] button:first-child',
         deleteBulkActionsButton:
-            '[data-test=bulk-actions-toolbar] button[aria-label="Delete"]',
+            '[data-test=bulk-actions-toolbar] button:last-child',
         selectAll: '.select-all',
         selectedItem: '.select-item input:checked',
         selectItem: '.select-item input',
@@ -33,7 +31,6 @@ export default url => ({
         title: '#react-admin-title',
         headroomUnfixed: '.headroom--unfixed',
         headroomUnpinned: '.headroom--unpinned',
-        skipNavButton: '.skip-nav-button',
     },
 
     navigate() {
@@ -53,24 +50,15 @@ export default url => ({
     },
 
     nextPage() {
-        cy.get(this.elements.nextPage).click({ force: true });
+        cy.get(this.elements.nextPage).click();
     },
 
     previousPage() {
-        cy.get(this.elements.previousPage).click({ force: true });
+        cy.get(this.elements.previousPage).click();
     },
 
     goToPage(n) {
-        return cy.get(this.elements.pageNumber(n)).click({ force: true });
-    },
-
-    addCommentableFilter() {
-        this.openFilters();
-        cy.get(this.elements.filterMenuItem('commentable')).click();
-    },
-
-    commentableFilter() {
-        return cy.get(this.elements.filterButton('commentable'));
+        return cy.get(this.elements.pageNumber(n)).click();
     },
 
     setFilterValue(name, value, clearPreviousValue = true) {
@@ -96,12 +84,6 @@ export default url => ({
     logout() {
         cy.get(this.elements.userMenu).click();
         cy.get(this.elements.logout).click();
-    },
-
-    setAsNonLogged() {
-        cy.window().then(win => {
-            win.localStorage.setItem('not_authenticated', true);
-        });
     },
 
     toggleSelectAll() {

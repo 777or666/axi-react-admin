@@ -7,6 +7,5 @@
     "supportFile": "support/index.js",
     "videosFolder": "videos",
     "viewportWidth": 1280,
-    "viewportHeight": 720,
-    "blockHosts": ["source.unsplash.com"]
+    "viewportHeight": 720
 }

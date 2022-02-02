@@ -1,1041 +1,502 @@
-import * as React from 'react';
-import expect from 'expect';
-import { waitFor, fireEvent } from '@testing-library/react';
-import { Form } from 'react-final-form';
-import { renderWithRedux } from 'ra-test';
-import ReferenceArrayInputController, {
-    ReferenceArrayInputControllerChildrenFuncParams,
-} from './ReferenceArrayInputController';
-import { CRUD_GET_MATCHING, CRUD_GET_MANY } from '../../actions';
-import { SORT_ASC } from '../../reducer/admin/resource/list/queryReducer';
+import React from 'react';
+import assert from 'assert';
+import { shallow } from 'enzyme';
+import { UnconnectedReferenceArrayInputController as ReferenceArrayInputController } from './ReferenceArrayInputController';
 
 describe('<ReferenceArrayInputController />', () => {
     const defaultProps = {
+        children: jest.fn(),
+        crudGetMatching: () => true,
+        crudGetMany: () => true,
         input: { value: undefined },
+        matchingReferences: [],
+        meta: {},
         record: undefined,
+        basePath: '/tags',
         reference: 'tags',
-        basePath: '/posts',
         resource: 'posts',
         source: 'tag_ids',
+        translate: x => `*${x}*`,
     };
 
-    it('should set loading to true as long as there are no references fetched and no selected references', () => {
-        const children = jest.fn(({ loading }) => (
-            <div>{loading.toString()}</div>
-        ));
-        const { queryByText } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [1, 2] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            { admin: { resources: { tags: { data: {} } } } }
+    it('should set isLoading to true as long as there are no references fetched and no selected references', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceArrayInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: null,
+                }}
+            >
+                {children}
+            </ReferenceArrayInputController>
         );
 
-        expect(queryByText('true')).not.toBeNull();
+        assert.equal(children.mock.calls[0][0].isLoading, true);
     });
 
-    it('should set loading to true as long as there are no references fetched and there are no data found for the references already selected', () => {
-        const children = jest.fn(({ loading }) => (
-            <div>{loading.toString()}</div>
-        ));
-        const { queryByText } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [1, 2] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            { admin: { resources: { tags: { data: {} } } } }
+    it('should set isLoading to true as long as there are no references fetched and there are no data found for the references already selected', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceArrayInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: null,
+                    input: { value: [1, 2] },
+                    referenceRecords: [],
+                }}
+            >
+                {children}
+            </ReferenceArrayInputController>
         );
-        expect(queryByText('true')).not.toBeNull();
+        assert.equal(children.mock.calls[0][0].isLoading, true);
     });
 
-    it('should set loading to false if the references are being searched but data from at least one selected reference was found', () => {
-        const children = jest.fn(({ loading }) => (
-            <div>{loading.toString()}</div>
-        ));
-        const { queryByText } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [1, 2] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            {
-                admin: {
-                    resources: {
-                        tags: {
-                            data: {
-                                1: {
-                                    id: 1,
-                                },
-                            },
-                            list: {},
-                        },
-                    },
-                },
-            }
+    it('should set isLoading to false if the references are being searched but data from at least one selected reference was found', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceArrayInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: null,
+                    input: { value: [1, 2] },
+                    referenceRecords: [{ id: 1 }],
+                }}
+            >
+                {children}
+            </ReferenceArrayInputController>
         );
-
-        expect(queryByText('false')).not.toBeNull();
+        assert.equal(children.mock.calls[0][0].isLoading, false);
+        assert.deepEqual(children.mock.calls[0][0].choices, [{ id: 1 }]);
     });
 
-    it('should set error in case of references fetch error and there are no selected reference in the input value', async () => {
-        const children = jest.fn(({ error }) => <div>{error}</div>);
-
-        const { queryByText } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController {...defaultProps}>
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            {
-                admin: {
-                    references: {
-                        possibleValues: {
-                            'posts@tag_ids': { error: 'boom' },
-                        },
-                    },
-                },
-            }
+    it('should set error in case of references fetch error and there are no selected reference in the input value', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceArrayInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: { error: 'fetch error' },
+                    referenceRecords: [],
+                }}
+            >
+                {children}
+            </ReferenceArrayInputController>
         );
-
-        expect(queryByText('ra.input.references.all_missing')).not.toBeNull();
+        assert.equal(
+            children.mock.calls[0][0].error,
+            '*ra.input.references.all_missing*'
+        );
     });
 
     it('should set error in case of references fetch error and there are no data found for the references already selected', () => {
-        const children = jest.fn(({ error }) => <div>{error}</div>);
-        const { queryByText } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [1] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            {
-                admin: {
-                    resources: { tags: { data: {} } },
-                    references: {
-                        possibleValues: {
-                            'posts@tag_ids': { error: 'boom' },
-                        },
-                    },
-                },
-            }
+        const children = jest.fn();
+        shallow(
+            <ReferenceArrayInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: { error: 'fetch error' },
+                    input: { value: [1] },
+                    referenceRecords: [],
+                }}
+            >
+                {children}
+            </ReferenceArrayInputController>
         );
-        expect(queryByText('ra.input.references.all_missing')).not.toBeNull();
+        assert.equal(
+            children.mock.calls[0][0].error,
+            '*ra.input.references.all_missing*'
+        );
     });
 
     it('should not display an error in case of references fetch error but data from at least one selected reference was found', () => {
-        const children = jest.fn(({ error }) => <div>{error}</div>);
-        const { queryByText } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [1, 2] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            {
-                admin: {
-                    resources: {
-                        tags: {
-                            data: {
-                                1: {
-                                    id: 1,
-                                },
-                            },
-                            list: {
-                                total: 42,
-                            },
-                        },
-                    },
-                    references: {
-                        possibleValues: {
-                            'posts@tag_ids': { error: 'boom' },
-                        },
-                    },
-                },
-            }
+        const children = jest.fn();
+        shallow(
+            <ReferenceArrayInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: { error: 'fetch error' },
+                    input: { value: [1, 2] },
+                    referenceRecords: [{ id: 2 }],
+                }}
+            >
+                {children}
+            </ReferenceArrayInputController>
         );
-        expect(queryByText('ra.input.references.all_missing')).toBeNull();
+        assert.equal(children.mock.calls[0][0].error, undefined);
+        assert.deepEqual(children.mock.calls[0][0].choices, [{ id: 2 }]);
     });
 
-    it('should set warning if references fetch fails but selected references are not empty', async () => {
-        const children = jest.fn(({ warning }) => <div>{warning}</div>);
-        const { queryByText } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        // Avoid global collision in useGetMany with queriesToCall
-                        basePath="/articles"
-                        resource="articles"
-                        input={{ value: [1, 2] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            {
-                admin: {
-                    resources: {
-                        tags: {
-                            data: {
-                                1: {
-                                    id: 1,
-                                },
-                            },
-                            list: {
-                                total: 42,
-                            },
-                        },
-                    },
-                    references: {
-                        possibleValues: {
-                            'articles@tag_ids': { error: 'boom' },
-                        },
-                    },
-                },
-            }
+    it('should set warning if references fetch fails but selected references are not empty', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceArrayInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: { error: 'fetch error' },
+                    input: { value: [1, 2] },
+                    referenceRecords: [{ id: 2 }],
+                }}
+            >
+                {children}
+            </ReferenceArrayInputController>
         );
-        await waitFor(() => {
-            expect(
-                queryByText('ra.input.references.many_missing')
-            ).not.toBeNull();
-        });
+        assert.equal(children.mock.calls[0][0].warning, '*fetch error*');
     });
 
-    it('should set warning if references were found but selected references are not complete', async () => {
-        const children = jest.fn(({ warning }) => <div>{warning}</div>);
-        const { queryByText } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        // Avoid global collision in useGetMany with queriesToCall
-                        basePath="/products"
-                        resource="products"
-                        input={{ value: [1, 2] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            {
-                admin: {
-                    resources: {
-                        tags: {
-                            data: {
-                                1: {
-                                    id: 1,
-                                },
-                            },
-                            list: {
-                                total: 42,
-                            },
-                        },
-                    },
-                    references: {
-                        possibleValues: {
-                            'products@tag_ids': [],
-                        },
-                    },
-                },
-            }
+    it('should set warning if references were found but selected references are not complete', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceArrayInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: [],
+                    input: { value: [1, 2] },
+                    referenceRecords: [{ id: 2 }],
+                }}
+            >
+                {children}
+            </ReferenceArrayInputController>
         );
-        await waitFor(() => {
-            expect(
-                queryByText('ra.input.references.many_missing')
-            ).not.toBeNull();
-        });
+        assert.equal(
+            children.mock.calls[0][0].warning,
+            '*ra.input.references.many_missing*'
+        );
     });
 
     it('should set warning if references were found but selected references are empty', () => {
-        const children = jest.fn(({ warning }) => <div>{warning}</div>);
-        const { queryByText } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        // Avoid global collision in useGetMany with queriesToCall
-                        basePath="/posters"
-                        resource="posters"
-                        input={{ value: [1, 2] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            {
-                admin: {
-                    resources: { tags: { data: { 5: {}, 6: {} } } },
-                    references: {
-                        possibleValues: {
-                            'posters@tag_ids': [],
-                        },
-                    },
-                },
-            }
+        const children = jest.fn();
+        shallow(
+            <ReferenceArrayInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: [],
+                    input: { value: [1, 2] },
+                    referenceRecords: [],
+                }}
+            >
+                {children}
+            </ReferenceArrayInputController>
         );
-        expect(queryByText('ra.input.references.many_missing')).not.toBeNull();
+        assert.equal(
+            children.mock.calls[0][0].warning,
+            '*ra.input.references.many_missing*'
+        );
     });
 
-    it('should not set warning if all references were found', async () => {
-        const children = jest.fn(({ warning }) => <div>{warning}</div>);
-        const { queryByText } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [1, 2] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            {
-                admin: {
-                    resources: {
-                        tags: {
-                            data: {
-                                1: {
-                                    id: 1,
-                                },
-                                2: {
-                                    id: 2,
-                                },
-                            },
-                            list: {
-                                total: 42,
-                            },
-                        },
-                    },
-                    references: {
-                        possibleValues: {
-                            'posts@tag_ids': [],
-                        },
-                    },
-                },
-            }
+    it('should not set warning if all references were found', () => {
+        const children = jest.fn();
+        shallow(
+            <ReferenceArrayInputController
+                {...{
+                    ...defaultProps,
+                    matchingReferences: [],
+                    input: { value: [1, 2] },
+                    referenceRecords: [{ id: 1 }, { id: 2 }],
+                }}
+            >
+                {children}
+            </ReferenceArrayInputController>
         );
-        await waitFor(() => {
-            expect(queryByText('ra.input.references.many_missing')).toBeNull();
-        });
+        assert.equal(children.mock.calls[0][0].warning, undefined);
     });
 
-    it('should call crudGetMatching on mount with default fetch values', async () => {
-        const children = jest.fn(() => <div />);
-        await new Promise(resolve => setTimeout(resolve, 100)); // empty the query deduplication in useQueryWithStore
-        const { dispatch } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController {...defaultProps} allowEmpty>
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            { admin: { resources: { tags: { data: {} } } } }
+    it('should pass onChange down to child component', () => {
+        const onChange = jest.fn();
+        const children = jest.fn();
+        shallow(
+            <ReferenceArrayInputController
+                {...defaultProps}
+                allowEmpty
+                onChange={onChange}
+            >
+                {children}
+            </ReferenceArrayInputController>
         );
-        expect(dispatch.mock.calls[0][0]).toEqual({
-            type: CRUD_GET_MATCHING,
-            meta: {
-                relatedTo: 'posts@tag_ids',
-                resource: 'tags',
+        assert.equal(children.mock.calls[0][0].onChange, onChange);
+    });
+
+    it('should call crudGetMatching on mount with default fetch values', () => {
+        const crudGetMatching = jest.fn();
+        shallow(
+            <ReferenceArrayInputController
+                {...defaultProps}
+                allowEmpty
+                crudGetMatching={crudGetMatching}
+            />
+        );
+        assert.deepEqual(crudGetMatching.mock.calls[0], [
+            'tags',
+            'posts@tag_ids',
+            {
+                page: 1,
+                perPage: 25,
             },
-            payload: {
-                pagination: {
-                    page: 1,
-                    perPage: 25,
-                },
-                sort: {
-                    field: 'id',
-                    order: 'DESC',
-                },
-                filter: { q: '' },
+            {
+                field: 'id',
+                order: 'DESC',
             },
-        });
+            {},
+        ]);
     });
 
     it('should allow to customize crudGetMatching arguments with perPage, sort, and filter props', () => {
-        const children = jest.fn(() => <div />);
-
-        const { dispatch } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        sort={{ field: 'foo', order: 'ASC' }}
-                        perPage={5}
-                        filter={{ permanentFilter: 'foo' }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
+        const crudGetMatching = jest.fn();
+        shallow(
+            <ReferenceArrayInputController
+                {...defaultProps}
+                allowEmpty
+                crudGetMatching={crudGetMatching}
+                sort={{ field: 'foo', order: 'ASC' }}
+                perPage={5}
+                filter={{ q: 'foo' }}
             />
         );
-        expect(dispatch.mock.calls[0][0]).toEqual({
-            type: CRUD_GET_MATCHING,
-            meta: {
-                relatedTo: 'posts@tag_ids',
-                resource: 'tags',
-            },
-            payload: {
-                pagination: {
-                    page: 1,
-                    perPage: 5,
-                },
-                sort: {
-                    field: 'foo',
-                    order: 'ASC',
-                },
-                filter: { permanentFilter: 'foo', q: '' },
-            },
-        });
-    });
-
-    it('should call crudGetMatching when setFilter is called', async () => {
-        const children = jest.fn(({ setFilter }) => (
-            <button aria-label="Filter" onClick={() => setFilter('bar')} />
-        ));
-
-        const { dispatch, getByLabelText } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController {...defaultProps}>
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />
-        );
-
-        fireEvent.click(getByLabelText('Filter'));
-
-        await waitFor(() => {
-            expect(dispatch).toHaveBeenCalledWith({
-                type: CRUD_GET_MATCHING,
-                meta: {
-                    relatedTo: 'posts@tag_ids',
-                    resource: 'tags',
-                },
-                payload: {
-                    pagination: {
-                        page: 1,
-                        perPage: 25,
-                    },
-                    sort: {
-                        field: 'id',
-                        order: 'DESC',
-                    },
-                    filter: { q: 'bar' },
-                },
-            });
-        });
-    });
-
-    it('should use custom filterToQuery function prop', async () => {
-        const children = jest.fn(({ setFilter }) => (
-            <button aria-label="Filter" onClick={() => setFilter('bar')} />
-        ));
-
-        const { dispatch, getByLabelText } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        filterToQuery={searchText => ({ foo: searchText })}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />
-        );
-
-        fireEvent.click(getByLabelText('Filter'));
-
-        await waitFor(() => {
-            expect(dispatch).toHaveBeenCalledWith({
-                type: CRUD_GET_MATCHING,
-                meta: {
-                    relatedTo: 'posts@tag_ids',
-                    resource: 'tags',
-                },
-                payload: {
-                    pagination: {
-                        page: 1,
-                        perPage: 25,
-                    },
-                    sort: {
-                        field: 'id',
-                        order: 'DESC',
-                    },
-                    filter: { foo: 'bar' },
-                },
-            });
-        });
-    });
-
-    it('should call crudGetMany on mount if value is set', async () => {
-        const children = jest.fn(() => <div />);
-
-        const { dispatch } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [5, 6] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            { admin: { resources: { tags: { data: { 5: {}, 6: {} } } } } }
-        );
-        await waitFor(() => {
-            expect(dispatch).toHaveBeenCalledWith({
-                type: CRUD_GET_MANY,
-                meta: {
-                    resource: 'tags',
-                },
-                payload: { ids: [5, 6] },
-            });
-        });
-    });
-
-    it('should only call crudGetMatching when calling setFilter', async () => {
-        const children = jest.fn(({ setFilter }) => (
-            <button aria-label="Filter" onClick={() => setFilter('bar')} />
-        ));
-
-        const { dispatch, getByLabelText } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [5] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            { admin: { resources: { tags: { data: { 5: {} } } } } }
-        );
-
-        fireEvent.click(getByLabelText('Filter'));
-
-        await waitFor(() => {
-            expect(
-                dispatch.mock.calls.filter(
-                    call => call[0].type === CRUD_GET_MATCHING
-                ).length
-            ).toEqual(2);
-            expect(
-                dispatch.mock.calls.filter(
-                    call => call[0].type === CRUD_GET_MANY
-                ).length
-            ).toEqual(1);
-        });
-    });
-
-    it('should only call crudGetMatching when props other than input are changed from outside', async () => {
-        const children = jest.fn(() => <div />);
-
-        const { dispatch, rerender } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [5] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            { admin: { resources: { tags: { data: { 5: {} } } } } }
-        );
-
-        rerender(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [5] }}
-                        filter={{ permanentFilter: 'bar' }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />
-        );
-
-        await waitFor(() => {
-            expect(
-                dispatch.mock.calls.filter(
-                    call => call[0].type === CRUD_GET_MATCHING
-                ).length
-            ).toEqual(2);
-            expect(
-                dispatch.mock.calls.filter(
-                    call => call[0].type === CRUD_GET_MANY
-                ).length
-            ).toEqual(1);
-        });
-
-        rerender(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [5] }}
-                        filter={{ permanentFilter: 'bar' }}
-                        sort={{ field: 'foo', order: 'ASC' }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />
-        );
-
-        await waitFor(() => {
-            expect(
-                dispatch.mock.calls.filter(
-                    call => call[0].type === CRUD_GET_MATCHING
-                ).length
-            ).toEqual(3);
-            expect(
-                dispatch.mock.calls.filter(
-                    call => call[0].type === CRUD_GET_MANY
-                ).length
-            ).toEqual(1);
-        });
-
-        rerender(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [5] }}
-                        filter={{ permanentFilter: 'bar' }}
-                        sort={{ field: 'foo', order: 'ASC' }}
-                        perPage={42}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />
-        );
-
-        await waitFor(() => {
-            expect(
-                dispatch.mock.calls.filter(
-                    call => call[0].type === CRUD_GET_MATCHING
-                ).length
-            ).toEqual(4);
-            expect(
-                dispatch.mock.calls.filter(
-                    call => call[0].type === CRUD_GET_MANY
-                ).length
-            ).toEqual(1);
-        });
-    });
-
-    it('should call crudGetMany when input value changes only with the additional input values', async () => {
-        const children = jest.fn(() => <div />);
-
-        const { dispatch, rerender } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [5] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
+        assert.deepEqual(crudGetMatching.mock.calls[0], [
+            'tags',
+            'posts@tag_ids',
             {
-                admin: {
-                    resources: {
-                        tags: {
-                            data: {},
-                            list: {},
-                        },
-                    },
-                    references: { possibleValues: {} },
-                    ui: { viewVersion: 1 },
-                },
-            }
-        );
+                page: 1,
+                perPage: 5,
+            },
+            {
+                field: 'foo',
+                order: 'ASC',
+            },
+            {
+                q: 'foo',
+            },
+        ]);
+    });
 
-        await waitFor(() => {
-            expect(dispatch).toHaveBeenCalledWith({
-                type: CRUD_GET_MANY,
-                meta: {
-                    resource: 'tags',
-                },
-                payload: { ids: [5] },
-            });
-        });
-        rerender(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [5, 6] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
+    it('should call crudGetMatching when setFilter is called', () => {
+        const crudGetMatching = jest.fn();
+        const wrapper = shallow(
+            <ReferenceArrayInputController
+                {...defaultProps}
+                allowEmpty
+                crudGetMatching={crudGetMatching}
             />
         );
-
-        await waitFor(() => {
-            expect(dispatch).toHaveBeenCalledWith({
-                type: CRUD_GET_MANY,
-                meta: {
-                    resource: 'tags',
-                },
-                payload: { ids: [6] },
-            });
-        });
+        wrapper.instance().setFilter('bar');
+        assert.deepEqual(crudGetMatching.mock.calls[1], [
+            'tags',
+            'posts@tag_ids',
+            {
+                page: 1,
+                perPage: 25,
+            },
+            {
+                field: 'id',
+                order: 'DESC',
+            },
+            {
+                q: 'bar',
+            },
+        ]);
     });
 
-    it('should not call crudGetMany when already fetched input value changes', async () => {
-        const children = jest.fn(() => <div />);
-
-        const { dispatch, rerender } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [5, 6] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            { admin: { resources: { tags: { data: { 5: {}, 6: {} } } } } }
-        );
-        await waitFor(() => {
-            expect(dispatch).toHaveBeenCalledWith({
-                type: CRUD_GET_MANY,
-                meta: {
-                    resource: 'tags',
-                },
-                payload: { ids: [5, 6] },
-            });
-        });
-        rerender(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [5, 6] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
+    it('should use custom filterToQuery function prop', () => {
+        const crudGetMatching = jest.fn();
+        const wrapper = shallow(
+            <ReferenceArrayInputController
+                {...defaultProps}
+                allowEmpty
+                crudGetMatching={crudGetMatching}
+                filterToQuery={searchText => ({ foo: searchText })}
             />
         );
-
-        await waitFor(() => {
-            expect(
-                dispatch.mock.calls.filter(
-                    call => call[0].type === CRUD_GET_MANY
-                ).length
-            ).toEqual(1);
-        });
+        wrapper.instance().setFilter('bar');
+        assert.deepEqual(crudGetMatching.mock.calls[1], [
+            'tags',
+            'posts@tag_ids',
+            {
+                page: 1,
+                perPage: 25,
+            },
+            {
+                field: 'id',
+                order: 'DESC',
+            },
+            {
+                foo: 'bar',
+            },
+        ]);
     });
 
-    it('should props compatible with the ListContext', async () => {
-        const children = ({
-            setPage,
-            setPerPage,
-            setSortForList,
-        }: ReferenceArrayInputControllerChildrenFuncParams): React.ReactElement => {
-            const handleSetPage = () => {
-                setPage(2);
-            };
-            const handleSetPerPage = () => {
-                setPerPage(50);
-            };
-            const handleSetSort = () => {
-                setSortForList('name', SORT_ASC);
-            };
-
-            return (
-                <>
-                    <button aria-label="setPage" onClick={handleSetPage} />
-                    <button
-                        aria-label="setPerPage"
-                        onClick={handleSetPerPage}
-                    />
-                    <button aria-label="setSort" onClick={handleSetSort} />
-                </>
-            );
-        };
-
-        const { getByLabelText, dispatch } = renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [5, 6] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            { admin: { resources: { tags: { data: { 5: {}, 6: {} } } } } }
+    it('should call crudGetMany on mount if value is set', () => {
+        const crudGetMany = jest.fn();
+        shallow(
+            <ReferenceArrayInputController
+                {...defaultProps}
+                allowEmpty
+                crudGetMany={crudGetMany}
+                input={{ value: [5, 6] }}
+            />
         );
-
-        fireEvent.click(getByLabelText('setPage'));
-        await waitFor(() => {
-            expect(dispatch).toHaveBeenCalledWith({
-                type: CRUD_GET_MATCHING,
-                meta: {
-                    relatedTo: 'posts@tag_ids',
-                    resource: 'tags',
-                },
-                payload: {
-                    pagination: {
-                        page: 2,
-                        perPage: 25,
-                    },
-                    sort: {
-                        field: 'id',
-                        order: 'DESC',
-                    },
-                    filter: { q: '' },
-                },
-            });
-        });
-
-        fireEvent.click(getByLabelText('setPerPage'));
-        await waitFor(() => {
-            expect(dispatch).toHaveBeenCalledWith({
-                type: CRUD_GET_MATCHING,
-                meta: {
-                    relatedTo: 'posts@tag_ids',
-                    resource: 'tags',
-                },
-                payload: {
-                    pagination: {
-                        page: 2,
-                        perPage: 50,
-                    },
-                    sort: {
-                        field: 'id',
-                        order: 'DESC',
-                    },
-                    filter: { q: '' },
-                },
-            });
-        });
-
-        fireEvent.click(getByLabelText('setSort'));
-        await waitFor(() => {
-            expect(dispatch).toHaveBeenCalledWith({
-                type: CRUD_GET_MATCHING,
-                meta: {
-                    relatedTo: 'posts@tag_ids',
-                    resource: 'tags',
-                },
-                payload: {
-                    pagination: {
-                        page: 1,
-                        perPage: 50,
-                    },
-                    sort: {
-                        field: 'name',
-                        order: 'ASC',
-                    },
-                    filter: { q: '' },
-                },
-            });
-        });
+        assert.deepEqual(crudGetMany.mock.calls[0], ['tags', [5, 6]]);
     });
 
-    it('should call its children with the correct resource and basePath', () => {
-        const children = jest.fn(() => null);
-        renderWithRedux(
-            <Form
-                onSubmit={jest.fn()}
-                render={() => (
-                    <ReferenceArrayInputController
-                        {...defaultProps}
-                        input={{ value: [1, 2] }}
-                    >
-                        {children}
-                    </ReferenceArrayInputController>
-                )}
-            />,
-            { admin: { resources: { tags: { data: {} } } } }
+    it('should only call crudGetMatching when calling setFilter', () => {
+        const crudGetMatching = jest.fn();
+        const crudGetMany = jest.fn();
+        const wrapper = shallow(
+            <ReferenceArrayInputController
+                {...defaultProps}
+                input={{ value: [5] }}
+                crudGetMany={crudGetMany}
+                crudGetMatching={crudGetMatching}
+            />
         );
+        assert.equal(crudGetMatching.mock.calls.length, 1);
+        assert.equal(crudGetMany.mock.calls.length, 1);
 
-        expect(children.mock.calls[0][0].resource).toEqual('posts');
-        expect(children.mock.calls[0][0].basePath).toEqual('/posts');
+        wrapper.instance().setFilter('bar');
+        assert.equal(crudGetMatching.mock.calls.length, 2);
+        assert.equal(crudGetMany.mock.calls.length, 1);
     });
 
-    describe('enableGetChoices', () => {
-        it('should not fetch possible values using crudGetMatching on load but only when enableGetChoices returns true', async () => {
-            const children = jest.fn().mockReturnValue(<div />);
-            await new Promise(resolve => setTimeout(resolve, 100)); // empty the query deduplication in useQueryWithStore
-            const enableGetChoices = jest.fn().mockImplementation(({ q }) => {
-                return q ? q.length > 2 : false;
-            });
-            const { dispatch } = renderWithRedux(
-                <Form
-                    onSubmit={jest.fn()}
-                    render={() => (
-                        <ReferenceArrayInputController
-                            {...defaultProps}
-                            allowEmpty
-                            enableGetChoices={enableGetChoices}
-                        >
-                            {children}
-                        </ReferenceArrayInputController>
-                    )}
-                />,
-                { admin: { resources: { tags: { data: {} } } } }
-            );
+    it('should only call crudGetMatching when props are changed from outside', () => {
+        const crudGetMatching = jest.fn();
+        const crudGetMany = jest.fn();
+        const wrapper = shallow(
+            <ReferenceArrayInputController
+                {...defaultProps}
+                allowEmpty
+                input={{ value: [5] }}
+                crudGetMany={crudGetMany}
+                crudGetMatching={crudGetMatching}
+            />
+        );
+        assert.equal(crudGetMatching.mock.calls.length, 1);
+        assert.equal(crudGetMany.mock.calls.length, 1);
 
-            // not call on start
-            await waitFor(() => {
-                expect(dispatch).not.toHaveBeenCalled();
-            });
-            expect(enableGetChoices).toHaveBeenCalledWith({ q: '' });
+        wrapper.setProps({ filter: { foo: 'bar' } });
+        assert.deepEqual(crudGetMatching.mock.calls[1], [
+            'tags',
+            'posts@tag_ids',
+            { page: 1, perPage: 25 },
+            { field: 'id', order: 'DESC' },
+            { foo: 'bar' },
+        ]);
+        assert.equal(crudGetMany.mock.calls.length, 1);
 
-            const { setFilter } = children.mock.calls[0][0];
-            setFilter('hello world');
+        wrapper.setProps({ sort: { field: 'foo', order: 'ASC' } });
+        assert.deepEqual(crudGetMatching.mock.calls[2], [
+            'tags',
+            'posts@tag_ids',
+            { page: 1, perPage: 25 },
+            { field: 'foo', order: 'ASC' },
+            { foo: 'bar' },
+        ]);
+        assert.equal(crudGetMany.mock.calls.length, 1);
 
-            await waitFor(() => {
-                expect(dispatch).toHaveBeenCalledTimes(5);
-            });
-            expect(dispatch.mock.calls[0][0]).toEqual({
-                type: CRUD_GET_MATCHING,
-                meta: {
-                    relatedTo: 'posts@tag_ids',
-                    resource: 'tags',
-                },
-                payload: {
-                    pagination: {
-                        page: 1,
-                        perPage: 25,
-                    },
-                    sort: {
-                        field: 'id',
-                        order: 'DESC',
-                    },
-                    filter: { q: 'hello world' },
-                },
-            });
-            expect(enableGetChoices).toHaveBeenCalledWith({ q: 'hello world' });
-        });
+        wrapper.setProps({ perPage: 42 });
+        assert.deepEqual(crudGetMatching.mock.calls[3], [
+            'tags',
+            'posts@tag_ids',
+            { page: 1, perPage: 42 },
+            { field: 'foo', order: 'ASC' },
+            { foo: 'bar' },
+        ]);
+        assert.equal(crudGetMany.mock.calls.length, 1);
+    });
 
-        it('should fetch current value using getMany even if enableGetChoices is returning false', async () => {
-            const children = jest.fn(() => <div />);
+    it('should call crudGetMatching with replaced filter from outside', () => {
+        const crudGetMatching = jest.fn();
+        const crudGetMany = jest.fn();
+        const wrapper = shallow(
+            <ReferenceArrayInputController
+                {...defaultProps}
+                allowEmpty
+                input={{ value: [5] }}
+                crudGetMany={crudGetMany}
+                crudGetMatching={crudGetMatching}
+                filter={{ foo: 'bar' }}
+            />
+        );
+        assert.equal(crudGetMatching.mock.calls.length, 1);
+        assert.equal(crudGetMany.mock.calls.length, 1);
 
-            const { dispatch } = renderWithRedux(
-                <Form
-                    onSubmit={jest.fn()}
-                    render={() => (
-                        <ReferenceArrayInputController
-                            {...defaultProps}
-                            input={{ value: [5, 6] }}
-                            enableGetChoices={() => false}
-                        >
-                            {children}
-                        </ReferenceArrayInputController>
-                    )}
-                />,
-                { admin: { resources: { tags: { data: { 5: {}, 6: {} } } } } }
-            );
-            await waitFor(() => {
-                expect(dispatch).toHaveBeenCalledWith({
-                    type: CRUD_GET_MANY,
-                    meta: {
-                        resource: 'tags',
-                    },
-                    payload: { ids: [5, 6] },
-                });
-            });
-            expect(dispatch).toHaveBeenCalledTimes(5);
-        });
+        wrapper.setProps({ filter: { foo: 'baz' } });
+        assert.deepEqual(crudGetMatching.mock.calls[1], [
+            'tags',
+            'posts@tag_ids',
+            { page: 1, perPage: 25 },
+            { field: 'id', order: 'DESC' },
+            { foo: 'baz' },
+        ]);
+        assert.equal(crudGetMany.mock.calls.length, 1);
+    });
 
-        it('should set loading to false if enableGetChoices returns false', async () => {
-            const children = jest.fn().mockReturnValue(<div />);
-            await new Promise(resolve => setTimeout(resolve, 100)); // empty the query deduplication in useQueryWithStore
-            const enableGetChoices = jest.fn().mockImplementation(({ q }) => {
-                return false;
-            });
-            renderWithRedux(
-                <Form
-                    onSubmit={jest.fn()}
-                    render={() => (
-                        <ReferenceArrayInputController
-                            {...defaultProps}
-                            allowEmpty
-                            enableGetChoices={enableGetChoices}
-                        >
-                            {children}
-                        </ReferenceArrayInputController>
-                    )}
-                />,
-                { admin: { resources: { tags: { data: {} } } } }
-            );
+    it('should call crudGetMany when input value changes', () => {
+        const crudGetMany = jest.fn();
+        const wrapper = shallow(
+            <ReferenceArrayInputController
+                {...defaultProps}
+                input={{ value: [5] }}
+                allowEmpty
+                crudGetMany={crudGetMany}
+            />
+        );
+        assert.equal(crudGetMany.mock.calls.length, 1);
+        wrapper.setProps({ input: { value: [6] } });
+        assert.equal(crudGetMany.mock.calls.length, 2);
+    });
 
-            await waitFor(() => {
-                expect(children.mock.calls[0][0].loading).toEqual(false);
-            });
-        });
+    it('should call crudGetMany when input value changes only with the additional input values', () => {
+        const crudGetMany = jest.fn();
+        const wrapper = shallow(
+            <ReferenceArrayInputController
+                {...defaultProps}
+                input={{ value: [5] }}
+                allowEmpty
+                crudGetMany={crudGetMany}
+            />
+        );
+        expect(
+            crudGetMany.mock.calls[crudGetMany.mock.calls.length - 1]
+        ).toEqual([defaultProps.reference, [5]]);
+        wrapper.setProps({ input: { value: [5, 6] } });
+        expect(
+            crudGetMany.mock.calls[crudGetMany.mock.calls.length - 1]
+        ).toEqual([defaultProps.reference, [6]]);
+    });
+
+    it('should not call crudGetMany when already fetched input value changes', () => {
+        const crudGetMany = jest.fn();
+        const wrapper = shallow(
+            <ReferenceArrayInputController
+                {...defaultProps}
+                input={{ value: [5, 6] }}
+                allowEmpty
+                crudGetMany={crudGetMany}
+            />
+        );
+        expect(crudGetMany.mock.calls[0]).toEqual([
+            defaultProps.reference,
+            [5, 6],
+        ]);
+        wrapper.setProps({ input: { value: [6] } });
+        expect(crudGetMany.mock.calls.length).toEqual(1);
+    });
+
+    it('should only call crudGetOne and not crudGetMatching when only the record changes', () => {
+        const crudGetMany = jest.fn();
+        const crudGetMatching = jest.fn();
+        const wrapper = shallow(
+            <ReferenceArrayInputController
+                {...defaultProps}
+                allowEmpty
+                input={{ value: [5] }}
+                crudGetMany={crudGetMany}
+                crudGetMatching={crudGetMatching}
+            />
+        );
+        assert.equal(crudGetMatching.mock.calls.length, 1);
+        assert.equal(crudGetMany.mock.calls.length, 1);
+        wrapper.setProps({ record: { id: 1 } });
+        assert.equal(crudGetMatching.mock.calls.length, 2);
+        assert.equal(crudGetMany.mock.calls.length, 1);
     });
 });

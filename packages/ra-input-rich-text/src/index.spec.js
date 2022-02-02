@@ -1,14 +1,12 @@
-import * as React from 'react';
+import React from 'react';
 import debounce from 'lodash/debounce';
-import { render, fireEvent, waitFor } from '@testing-library/react';
-import { Form } from 'react-final-form';
+import { render, fireEvent, waitForElement } from 'react-testing-library';
 
-import RichTextInput from './index';
+import { RichTextInput } from './index';
 
 let container;
 
 jest.mock('lodash/debounce');
-
 describe('RichTextInput', () => {
     beforeEach(() => {
         container = document.createElement('div');
@@ -17,7 +15,7 @@ describe('RichTextInput', () => {
         document.getSelection = () => {
             return {
                 removeAllRanges: () => {},
-                getRangeAt: function () {},
+                getRangeAt: function() {},
             };
         };
     });
@@ -32,15 +30,15 @@ describe('RichTextInput', () => {
         const handleChange = jest.fn();
         debounce.mockImplementation(fn => fn);
         const { getByTestId, rerender } = render(
-            <Form
-                initialValues={{ body: '<p>test</p>' }}
-                onSubmit={jest.fn()}
-                render={() => (
-                    <RichTextInput source="body" onChange={handleChange} />
-                )}
+            <RichTextInput
+                input={{
+                    value: '<p>test</p>',
+                    onChange: handleChange,
+                }}
+                meta={{ error: null }}
             />
         );
-        const quillNode = await waitFor(() => {
+        const quillNode = await waitForElement(() => {
             return getByTestId('quill');
         });
         const node = quillNode.querySelector('.ql-editor');
@@ -52,12 +50,12 @@ describe('RichTextInput', () => {
         jest.runOnlyPendingTimers();
 
         rerender(
-            <Form
-                initialValues={{ body: '<p>test1</p>' }}
-                onSubmit={jest.fn()}
-                render={() => (
-                    <RichTextInput source="body" onChange={handleChange} />
-                )}
+            <RichTextInput
+                input={{
+                    value: '<p>test1</p>',
+                    onChange: handleChange,
+                }}
+                meta={{ error: null }}
             />
         );
 

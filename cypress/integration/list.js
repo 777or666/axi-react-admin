@@ -16,6 +16,23 @@ describe('List Page', () => {
         });
     });
 
+    describe('Auto-hide AppBar', () => {
+        it('should hide/show the appBar when scroll action appears', () => {
+            // wait for the skeleton to disappear
+            cy.contains('1-10 of 13');
+
+            cy.viewport(1280, 500);
+
+            cy.scrollTo(0, 200);
+            cy.get(ListPagePosts.elements.headroomUnpinned).should(
+                'not.be.visible'
+            );
+
+            cy.scrollTo(0, -100);
+            cy.get(ListPagePosts.elements.headroomUnfixed).should('be.visible');
+        });
+    });
+
     describe('Pagination', () => {
         it('should display paginated list of available posts', () => {
             cy.contains('1-10 of 13');
@@ -66,7 +83,6 @@ describe('List Page', () => {
 
         it('should hide filter when clicking on hide button', () => {
             ListPagePosts.showFilter('title');
-            cy.contains('1-1 of 1');
             ListPagePosts.hideFilter('title');
 
             cy.get(ListPagePosts.elements.filter('title')).should(
@@ -76,9 +92,8 @@ describe('List Page', () => {
         });
 
         it('should keep filters when navigating away and going back on given page', () => {
-            ListPagePosts.logout();
+            LoginPage.navigate();
             LoginPage.login('admin', 'password');
-            ListPagePosts.navigate();
             ListPagePosts.setFilterValue('q', 'quis culpa impedit');
             cy.contains('1-1 of 1');
 
@@ -97,27 +112,8 @@ describe('List Page', () => {
             ListPagePosts.setFilterValue('q', '');
         });
 
-        it('should keep added filters when emptying it after navigating away and back', () => {
-            ListPagePosts.logout();
-            LoginPage.login('admin', 'password');
-            ListPagePosts.navigate();
-            ListPagePosts.showFilter('title');
-            ListPagePosts.setFilterValue(
-                'title',
-                'Omnis voluptate enim similique est possimus'
-            );
-            cy.contains('1-1 of 1');
-            cy.get('[href="#/users"]').click();
-            cy.get('[href="#/posts"]').click();
-            cy.get(ListPagePosts.elements.filter('title')).should(el =>
-                expect(el).to.have.value(
-                    'Omnis voluptate enim similique est possimus'
-                )
-            );
-        });
-
         it('should allow to disable alwaysOn filters with default value', () => {
-            ListPagePosts.logout();
+            LoginPage.navigate();
             LoginPage.login('admin', 'password');
             ListPageUsers.navigate();
             cy.contains('1-2 of 2');
@@ -130,9 +126,7 @@ describe('List Page', () => {
         it('should allow to select all items on the current page', () => {
             cy.contains('1-10 of 13'); // wait for data
             ListPagePosts.toggleSelectAll();
-            cy.get(ListPagePosts.elements.bulkActionsToolbar).should(
-                'be.visible'
-            );
+            cy.get(ListPagePosts.elements.bulkActionsToolbar).should('exist');
             cy.contains('10 items selected');
             cy.get(ListPagePosts.elements.selectedItem).should(els =>
                 expect(els).to.have.length(10)
@@ -142,12 +136,10 @@ describe('List Page', () => {
         it('should allow to unselect all items on the current page', () => {
             cy.contains('1-10 of 13'); // wait for data
             ListPagePosts.toggleSelectAll();
-            cy.get(ListPagePosts.elements.bulkActionsToolbar).should(
-                'be.visible'
-            );
+            cy.get(ListPagePosts.elements.bulkActionsToolbar).should('exist');
             ListPagePosts.toggleSelectAll();
             cy.get(ListPagePosts.elements.bulkActionsToolbar).should(
-                'not.be.visible'
+                'not.exist'
             );
             cy.get(ListPagePosts.elements.selectedItem).should(els =>
                 expect(els).to.have.length(0)
@@ -168,7 +160,7 @@ describe('List Page', () => {
             ListPagePosts.toggleSelectAll();
             ListPagePosts.applyUpdateBulkAction();
             cy.get(ListPagePosts.elements.bulkActionsToolbar).should(
-                'not.be.visible'
+                'not.exist'
             );
             cy.get(ListPagePosts.elements.selectedItem).should(els =>
                 expect(els).to.have.length(0)
@@ -189,25 +181,6 @@ describe('List Page', () => {
             ListPagePosts.applyDeleteBulkAction();
             cy.contains('1-10 of 10');
         });
-
-        it('should allow to select items with the shift key on different pages', () => {
-            cy.contains('1-10 of 13'); // wait for data
-            cy.get(ListPagePosts.elements.selectItem).eq(0).click();
-            cy.get(ListPagePosts.elements.selectItem)
-                .eq(2)
-                .click({ shiftKey: true });
-            cy.contains('3 items selected');
-            ListPagePosts.nextPage();
-            cy.contains('11-13 of 13'); // wait for data
-            cy.get(ListPagePosts.elements.selectedItem).should(els => {
-                expect(els).to.have.length(0);
-            });
-            cy.get(ListPagePosts.elements.selectItem).eq(0).click();
-            cy.get(ListPagePosts.elements.selectItem)
-                .eq(2)
-                .click({ shiftKey: true });
-            cy.contains('6 items selected');
-        });
     });
 
     describe('rowClick', () => {
@@ -221,10 +194,12 @@ describe('List Page', () => {
         });
 
         it('should accept a function returning a promise', () => {
-            ListPagePosts.logout();
+            LoginPage.navigate();
             LoginPage.login('user', 'password');
             ListPageUsers.navigate();
-            cy.contains('Annamarie Mayer').parents('tr').click();
+            cy.contains('Annamarie Mayer')
+                .parents('tr')
+                .click();
             cy.contains('Summary').should(el => expect(el).to.exist);
         });
     });
@@ -252,15 +227,12 @@ describe('List Page', () => {
                 .click()
                 .should(el => expect(el).to.have.attr('aria-expanded', 'true'))
                 .should(el => expect(el).to.have.attr('aria-label', 'Close'));
-
             cy.get('#13-expand').should(el => expect(el).to.exist);
-
             cy.get('[aria-label="Expand"]')
-                .eq(0) // We still target the first button labeled Expand because the previous one should now have a Close label
+                .eq(0)
                 .click()
                 .should(el => expect(el).to.have.attr('aria-expanded', 'true'))
                 .should(el => expect(el).to.have.attr('aria-label', 'Close'));
-
             cy.get('#12-expand').should(el => expect(el).to.exist);
         });
     });
@@ -299,21 +271,6 @@ describe('List Page', () => {
                     '[class*=iconDirectionDesc]'
                 )
             ).should('exist');
-        });
-
-        it('should keep filters when sorting a column', () => {
-            ListPagePosts.setFilterValue('q', 'quis culpa impedit');
-            cy.get(ListPagePosts.elements.recordRows).should(el =>
-                expect(el).to.have.length(1)
-            );
-
-            ListPagePosts.toggleColumnSort('title');
-            ListPagePosts.waitUntilDataLoaded();
-
-            cy.get(ListPagePosts.elements.filter('q')).should(
-                'have.value',
-                'quis culpa impedit'
-            );
         });
     });
 });

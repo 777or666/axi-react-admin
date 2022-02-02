@@ -4,16 +4,15 @@ module.exports = on => {
     const options = {
         webpackOptions: require('../webpack.config'),
     };
-    on('before:browser:launch', (browser = {}, launchOptions) => {
-        // Fix for Cypress 4:
-        // https://docs.cypress.io/api/plugins/browser-launch-api.html#Usage
+    on('before:browser:launch', (browser = {}, args) => {
         if (browser.name === 'chrome') {
-            launchOptions.args.push(
-                '--disable-blink-features=RootLayerScrolling'
-            );
-            launchOptions.args.push('--disable-gpu');
-            launchOptions.args.push('--proxy-bypass-list=<-loopback>');
-            return launchOptions;
+            return [
+                ...args.filter(
+                    arg => arg !== '--disable-blink-features=RootLayerScrolling'
+                ),
+                '--disable-gpu',
+                '--proxy-bypass-list=<-loopback>',
+            ];
         }
     });
     on('file:preprocessor', wp(options));

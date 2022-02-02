@@ -1,43 +1,40 @@
-import * as React from 'react';
-import { ReactElement, memo } from 'react';
+import React, { SFC } from 'react';
+import pure from 'recompose/pure';
+import compose from 'recompose/compose';
 
-import useTranslate from '../i18n/useTranslate';
+import translateHoc from '../i18n/translate';
 import getFieldLabelTranslationArgs from './getFieldLabelTranslationArgs';
+import { Translate } from '../types';
 
-export interface FieldTitleProps {
+interface Props {
     isRequired?: boolean;
     resource?: string;
     source?: string;
-    label?: string | ReactElement | false;
+    label?: string;
+    translate?: Translate;
 }
 
-export const FieldTitle = (props: FieldTitleProps) => {
-    const { resource, source, label, isRequired } = props;
-    const translate = useTranslate();
+export const FieldTitle: SFC<Props> = ({
+    resource,
+    source,
+    label,
+    isRequired,
+    translate = (name: string, options) => name,
+}) => (
+    <span>
+        {translate(
+            ...getFieldLabelTranslationArgs({ label, resource, source })
+        )}
+        {isRequired && ' *'}
+    </span>
+);
 
-    if (label === false || label === '') {
-        return null;
-    }
-
-    if (label && typeof label !== 'string') {
-        return label;
-    }
-
-    return (
-        <span>
-            {translate(
-                ...getFieldLabelTranslationArgs({
-                    label: label as string,
-                    resource,
-                    source,
-                })
-            )}
-            {isRequired && ' *'}
-        </span>
-    );
-};
-
-// What? TypeScript loses the displayName if we don't set it explicitly
+// wat? TypeScript looses the displayName if we don't set it explicitly
 FieldTitle.displayName = 'FieldTitle';
 
-export default memo(FieldTitle);
+const enhance = compose(
+    translateHoc,
+    pure
+);
+
+export default enhance(FieldTitle);

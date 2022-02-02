@@ -1,5 +1,5 @@
 import { Identifier, Record } from '../../types';
-import { GET_ONE } from '../../core';
+import { GET_ONE } from '../../dataFetchActions';
 import { FETCH_END, FETCH_ERROR } from '../fetchActions';
 import {
     NotificationSideEffect,

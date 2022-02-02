@@ -7,15 +7,18 @@ import {
     takeEvery,
 } from 'redux-saga/effects';
 import { DataProvider, ReduxState } from '../types';
-import { FETCH_CANCEL, FETCH_END, FETCH_ERROR, FETCH_START } from '../actions';
+import {
+    FETCH_CANCEL,
+    FETCH_END,
+    FETCH_ERROR,
+    FETCH_START,
+} from '../actions/fetchActions';
 import {
     fetchActionsWithRecordResponse,
     fetchActionsWithArrayOfIdentifiedRecordsResponse,
     fetchActionsWithArrayOfRecordsResponse,
     fetchActionsWithTotalResponse,
-    sanitizeFetchType,
-} from '../core';
-import { DeclarativeSideEffect } from '../dataProvider/useDeclarativeSideEffects';
+} from '../dataFetchActions';
 
 function validateResponseFormat(
     response,
@@ -74,8 +77,8 @@ interface ActionWithSideEffect {
     meta: {
         fetch: string;
         resource: string;
-        onSuccess?: DeclarativeSideEffect;
-        onFailure?: DeclarativeSideEffect;
+        onSuccess?: any;
+        onFailure?: any;
     };
 }
 
@@ -89,8 +92,6 @@ export function* handleFetch(
         meta: { fetch: fetchMeta, onSuccess, onFailure, ...meta },
     } = action;
     const restType = fetchMeta;
-    const successSideEffects = onSuccess instanceof Function ? {} : onSuccess;
-    const failureSideEffects = onFailure instanceof Function ? {} : onFailure;
 
     try {
         const isOptimistic = yield select(
@@ -107,7 +108,8 @@ export function* handleFetch(
             put({ type: FETCH_START }),
         ]);
         const response = yield call(
-            dataProvider[sanitizeFetchType(restType)],
+            dataProvider,
+            restType,
             meta.resource,
             payload
         );
@@ -120,7 +122,7 @@ export function* handleFetch(
             requestPayload: payload,
             meta: {
                 ...meta,
-                ...successSideEffects,
+                ...onSuccess,
                 fetchResponse: restType,
                 fetchStatus: FETCH_END,
             },
@@ -129,12 +131,12 @@ export function* handleFetch(
     } catch (error) {
         yield put({
             type: `${type}_FAILURE`,
-            error: (error && (error.message ? error.message : error)) || null,
-            payload: (error && error.body) || null,
+            error: error.message ? error.message : error,
+            payload: error.body ? error.body : null,
             requestPayload: payload,
             meta: {
                 ...meta,
-                ...failureSideEffects,
+                ...onFailure,
                 fetchResponse: restType,
                 fetchStatus: FETCH_ERROR,
             },

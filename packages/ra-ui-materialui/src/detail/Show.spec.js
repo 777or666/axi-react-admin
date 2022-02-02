@@ -1,9 +1,8 @@
-import * as React from 'react';
-import expect from 'expect';
-import { DataProviderContext } from 'ra-core';
-import { renderWithRedux } from 'ra-test';
+import React from 'react';
+import { render } from 'enzyme';
+import { TestContext } from 'ra-core';
 
-import { Show } from './Show';
+import Show from './Show';
 
 describe('<Show />', () => {
     const defaultShowProps = {
@@ -16,18 +15,14 @@ describe('<Show />', () => {
 
     it('should display aside component', () => {
         const Aside = () => <div id="aside">Hello</div>;
-        const dataProvider = {
-            getOne: () => Promise.resolve({ data: { id: 123 } }),
-        };
-        const Dummy = () => <div />;
-        const { queryAllByText } = renderWithRedux(
-            <DataProviderContext.Provider value={dataProvider}>
+        const wrapper = render(
+            <TestContext>
                 <Show {...defaultShowProps} aside={<Aside />}>
-                    <Dummy />
+                    <div />
                 </Show>
-            </DataProviderContext.Provider>,
-            { admin: { resources: { foo: { data: {} } } } }
+            </TestContext>
         );
-        expect(queryAllByText('Hello')).toHaveLength(1);
+        const aside = wrapper.find('#aside');
+        expect(aside.text()).toEqual('Hello');
     });
 });

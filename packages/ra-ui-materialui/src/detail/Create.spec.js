@@ -1,8 +1,8 @@
-import * as React from 'react';
-import expect from 'expect';
-import { renderWithRedux } from 'ra-test';
+import React from 'react';
+import { render } from 'enzyme';
+import { TestContext } from 'ra-core';
 
-import { Create } from './Create';
+import Create from './Create';
 
 describe('<Create />', () => {
     const defaultCreateProps = {
@@ -16,11 +16,14 @@ describe('<Create />', () => {
     it('should display aside component', () => {
         const Dummy = () => <div />;
         const Aside = () => <div id="aside">Hello</div>;
-        const { queryAllByText } = renderWithRedux(
-            <Create {...defaultCreateProps} aside={<Aside />}>
-                <Dummy />
-            </Create>
+        const wrapper = render(
+            <TestContext>
+                <Create {...defaultCreateProps} aside={<Aside />}>
+                    <Dummy />
+                </Create>
+            </TestContext>
         );
-        expect(queryAllByText('Hello')).toHaveLength(1);
+        const aside = wrapper.find('#aside');
+        expect(aside.text()).toEqual('Hello');
     });
 });

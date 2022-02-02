@@ -1,6 +1,7 @@
 import expect from 'expect';
-import { cancel, delay, fork, put } from 'redux-saga/effects';
-import { createMockTask } from '@redux-saga/testing-utils';
+import { delay } from 'redux-saga';
+import { call, cancel, fork, put } from 'redux-saga/effects';
+import { createMockTask } from 'redux-saga/utils';
 
 import { accumulateFactory, finalizeFactory } from './accumulate';
 import { crudGetMany } from '../actions';
@@ -12,11 +13,7 @@ describe('accumulate saga', () => {
             const accumulations = {};
             const finalize = finalizeFactory(tasks, accumulations);
 
-            const saga = accumulateFactory(
-                tasks,
-                accumulations,
-                finalize
-            )({
+            const saga = accumulateFactory(tasks, accumulations, finalize)({
                 payload: { resource: 'posts', ids: [1, 2] },
                 meta: { accumulate: crudGetMany },
             });
@@ -38,11 +35,7 @@ describe('accumulate saga', () => {
             };
             const finalize = finalizeFactory(tasks, accumulations);
 
-            const saga = accumulateFactory(
-                tasks,
-                accumulations,
-                finalize
-            )({
+            const saga = accumulateFactory(tasks, accumulations, finalize)({
                 payload: { resource: 'posts', ids: [2, 3] },
                 meta: { accumulate: crudGetMany },
             });
@@ -67,7 +60,7 @@ describe('accumulate saga', () => {
                 crudGetMany
             );
 
-            expect(saga.next().value).toEqual(delay(50));
+            expect(saga.next().value).toEqual(call(delay, 50));
 
             expect(saga.next().value).toEqual(
                 put(crudGetMany('posts', [1, 2]))
@@ -85,11 +78,7 @@ describe('accumulate saga', () => {
             const accumulations = {};
             const finalize = finalizeFactory(tasks, accumulations);
 
-            const saga = accumulateFactory(
-                tasks,
-                accumulations,
-                finalize
-            )({
+            const saga = accumulateFactory(tasks, accumulations, finalize)({
                 type: 'ACCUMULATE_ACTION',
                 payload: { ids: [1, 2] },
                 meta: {
@@ -117,11 +106,7 @@ describe('accumulate saga', () => {
             const accumulations = { posts: [1, 2] };
             const finalize = finalizeFactory(tasks, accumulations);
 
-            const saga = accumulateFactory(
-                tasks,
-                accumulations,
-                finalize
-            )({
+            const saga = accumulateFactory(tasks, accumulations, finalize)({
                 type: 'ACCUMULATE_ACTION',
                 payload: { ids: [3, 4] },
                 meta: {

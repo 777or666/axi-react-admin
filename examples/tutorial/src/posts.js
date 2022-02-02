@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import {
     Show,
     ShowButton,
@@ -12,21 +12,31 @@ import {
     ReferenceField,
     TextField,
     EditButton,
+    DisabledInput,
+    LongTextInput,
     ReferenceInput,
     SelectInput,
     SimpleForm,
     TextInput,
+    Filter,
 } from 'react-admin';
 
-const postFilters = [
-    <TextInput source="q" label="Search" alwaysOn />,
-    <ReferenceInput source="userId" label="User" reference="users" allowEmpty>
-        <SelectInput optionText="name" />
-    </ReferenceInput>,
-];
+const PostFilter = props => (
+    <Filter {...props}>
+        <TextInput label="Search" source="q" alwaysOn />
+        <ReferenceInput
+            label="User"
+            source="userId"
+            reference="users"
+            allowEmpty
+        >
+            <SelectInput optionText="name" />
+        </ReferenceInput>
+    </Filter>
+);
 
 export const PostList = props => (
-    <List {...props} filters={postFilters}>
+    <List {...props} filters={<PostFilter />}>
         <Datagrid>
             <TextField source="id" />
             <ReferenceField label="User" source="userId" reference="users">
@@ -46,12 +56,12 @@ const PostTitle = ({ record }) => {
 export const PostEdit = props => (
     <Edit title={<PostTitle />} {...props}>
         <SimpleForm>
-            <TextInput disabled source="id" />
+            <DisabledInput source="id" />
             <ReferenceInput label="User" source="userId" reference="users">
                 <SelectInput optionText="name" />
             </ReferenceInput>
             <TextInput source="title" />
-            <TextInput multiline source="body" />
+            <LongTextInput source="body" />
         </SimpleForm>
     </Edit>
 );
@@ -63,7 +73,7 @@ export const PostCreate = props => (
                 <SelectInput optionText="name" />
             </ReferenceInput>
             <TextInput source="title" />
-            <TextInput multiline source="body" />
+            <LongTextInput source="body" />
         </SimpleForm>
     </Create>
 );

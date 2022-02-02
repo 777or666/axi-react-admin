@@ -1,4 +1,4 @@
-import expect from 'expect';
+import assert from 'assert';
 import removeKey from './removeKey';
 
 describe('removeKey', () => {
@@ -17,7 +17,7 @@ describe('removeKey', () => {
     };
 
     it('remove simple key from target', () => {
-        expect(removeKey(target, 'foo')).toEqual({
+        assert.deepEqual(removeKey(target, 'foo'), {
             deep: {
                 foo: '',
                 deep2: {
@@ -32,7 +32,7 @@ describe('removeKey', () => {
     });
 
     it('remove first level deep key from target', () => {
-        expect(removeKey(target, 'deep.foo')).toEqual({
+        assert.deepEqual(removeKey(target, 'deep.foo'), {
             foo: 'bar',
             deep: {
                 deep2: {
@@ -47,7 +47,7 @@ describe('removeKey', () => {
     });
 
     it('remove deep key from target', () => {
-        expect(removeKey(target, 'deep.deep2.foo')).toEqual({
+        assert.deepEqual(removeKey(target, 'deep.deep2.foo'), {
             foo: 'bar',
             deep: {
                 foo: '',
@@ -60,7 +60,7 @@ describe('removeKey', () => {
     });
 
     it('remove deep key from target keeping deep object if not empty', () => {
-        expect(removeKey(target, 'deep.deep3.foo')).toEqual({
+        assert.deepEqual(removeKey(target, 'deep.deep3.foo'), {
             foo: 'bar',
             deep: {
                 foo: '',

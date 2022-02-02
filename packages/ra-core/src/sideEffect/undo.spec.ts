@@ -1,10 +1,8 @@
 import expect from 'expect';
-import { put, race, take } from 'redux-saga/effects';
+import { put } from 'redux-saga/effects';
 
 import { showNotification } from '../actions/notificationActions';
 import {
-    UNDO,
-    COMPLETE,
     startOptimisticMode,
     stopOptimisticMode,
 } from '../actions/undoActions';
@@ -48,12 +46,7 @@ describe('undo saga', () => {
             );
         });
         it('should fork the race', () => {
-            expect(generator.next().value).toEqual(
-                race({
-                    undo: take(UNDO),
-                    complete: take(COMPLETE),
-                })
-            );
+            expect(generator.next().value).toHaveProperty('RACE');
         });
         it('should stop the optimistic mode', () => {
             expect(generator.next({ undo: true }).value).toEqual(
@@ -92,12 +85,7 @@ describe('undo saga', () => {
             );
         });
         it('should fork the race', () => {
-            expect(generator.next().value).toEqual(
-                race({
-                    undo: take(UNDO),
-                    complete: take(COMPLETE),
-                })
-            );
+            expect(generator.next().value).toHaveProperty('RACE');
         });
         it('should stop the optimistic mode', () => {
             expect(generator.next({ complete: true }).value).toEqual(

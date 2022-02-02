@@ -12,7 +12,7 @@ const defaultState = {
     filter: {},
 };
 
-export interface ParamsState {
+interface State {
     sort: string;
     order: string;
     page: number;
@@ -24,7 +24,7 @@ type ActionTypes =
     | ChangeListParamsAction
     | { type: 'OTHER_ACTION'; payload: any };
 
-const paramsReducer: Reducer<ParamsState> = (
+const paramsReducer: Reducer<State> = (
     previousState = defaultState,
     action: ActionTypes
 ) => {

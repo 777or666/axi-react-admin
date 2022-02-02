@@ -1,22 +1,9 @@
-import * as React from 'react';
-import { ComponentType } from 'react';
+import React, { ComponentType } from 'react';
 
 const checkMinimumRequiredProps = (
     displayName: string,
     requiredProps: string[]
 ) => (WrappedComponent: ComponentType) => (props: any) => {
-    useCheckMinimumRequiredProps(displayName, requiredProps, props);
-    return <WrappedComponent {...props} />;
-};
-
-export default checkMinimumRequiredProps;
-
-// Not a hook but named that way to avoid conflicts with the old one
-export const useCheckMinimumRequiredProps = (
-    displayName: string,
-    requiredProps: string[],
-    props: any
-): void => {
     const propNames = Object.keys(props);
     const missingProps = requiredProps.filter(
         prop => !propNames.includes(prop)
@@ -34,4 +21,8 @@ const My${displayName} = props => (
 The missing props are: ${missingProps.join(', ')}`
         );
     }
+
+    return <WrappedComponent {...props} />;
 };
+
+export default checkMinimumRequiredProps;

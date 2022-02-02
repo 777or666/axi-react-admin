@@ -5,7 +5,7 @@ return server.start().then(listeningServer => {
     // kick off a cypress run
     return cypress
         .run({
-            browser: process.env.BROWSER || 'chrome',
+            browser: 'chrome',
             config: {
                 baseUrl: 'http://localhost:8080',
                 video: false,
@@ -17,8 +17,5 @@ return server.start().then(listeningServer => {
             if (results.totalFailed > 0) {
                 process.exit(1);
             }
-        })
-        .catch(() => {
-            process.exit(1);
         });
 });

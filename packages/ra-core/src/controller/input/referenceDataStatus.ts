@@ -86,10 +86,10 @@ export const getStatusForArrayInput = ({
     referenceRecords,
     translate = x => x,
 }: GetStatusForArrayInputParams) => {
-    // selectedReferencesDataStatus can be "empty" (no data was found for references from input.value)
+    // selectedReferencesData can be "empty" (no data was found for references from input.value)
     // or "incomplete" (Not all of the reference data was found)
     // or "ready" (all references data was found or there is no references from input.value)
-    const selectedReferencesDataStatus = getSelectedReferencesStatus(
+    const selectedReferencesData = getSelectedReferencesStatus(
         input,
         referenceRecords
     );
@@ -106,21 +106,20 @@ export const getStatusForArrayInput = ({
         waiting:
             (!matchingReferences &&
                 input.value &&
-                selectedReferencesDataStatus === REFERENCES_STATUS_EMPTY) ||
+                selectedReferencesData === REFERENCES_STATUS_EMPTY) ||
             (!matchingReferences && !input.value),
         error:
             matchingReferencesError &&
             (!input.value ||
                 (input.value &&
-                    selectedReferencesDataStatus === REFERENCES_STATUS_EMPTY))
+                    selectedReferencesData === REFERENCES_STATUS_EMPTY))
                 ? translate('ra.input.references.all_missing', {
                       _: 'ra.input.references.all_missing',
                   })
                 : null,
         warning:
             matchingReferencesError ||
-            (input.value &&
-                selectedReferencesDataStatus !== REFERENCES_STATUS_READY)
+            (input.value && selectedReferencesData !== REFERENCES_STATUS_READY)
                 ? matchingReferencesError ||
                   translate('ra.input.references.many_missing', {
                       _: 'ra.input.references.many_missing',

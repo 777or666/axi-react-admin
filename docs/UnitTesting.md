@@ -17,16 +17,16 @@ That being said, there are still some cases, listed below, where a unit test can
 
 One issue you may run into when attempting to render custom `Create` or `Edit` views is that you need to provide the component with the expected props contained within the react-admin redux store.
 
-Luckily, the `ra-test` package provides access to a `TestContext` wrapper component that can be used to initialise your component with many of the expected react-admin props:
+Luckily, react-admin provides access to a `TestContext` wrapper component that can be used to initialise your component with many of the expected react-admin props:
 
 ```jsx
-import * as React from "react";
-import { TestContext } from 'ra-test';
-import { render } from '@testing-library/react';
+import React from 'react';
+import { TestContext } from 'react-admin';
+import { mount } from 'enzyme';
 import MyCustomEditView from './my-custom-edit-view';
 
 describe('MyCustomEditView', () => {
-    let testUtils;
+    let myCustomEditView;
 
     beforeEach(() => {
         const defaultEditProps = {
@@ -37,7 +37,7 @@ describe('MyCustomEditView', () => {
             match: {},
         };
 
-        testUtils = render(
+        myCustomEditView = mount(
             <TestContext>
                 <MyCustomEditView {...defaultEditProps} />
             </TestContext>
@@ -54,25 +54,26 @@ At this point, your component should `mount` without errors and you can unit tes
 
 ## Enabling reducers to ensure actions are dispatched
 
-If your component relies on a reducer, you can enable reducers using the `enableReducers` prop:
+If you component relies on a reducer, e.g. redux-form submission, you can enable reducers using the `enableReducers` prop:
 
 ```jsx
-testUtils = render(
+myCustomEditView = mount(
     <TestContext enableReducers>
         <MyCustomEditView />
     </TestContext>
 );
 ```
 
-This means that reducers will work as they will within the app.
+This means that reducers will work as they will within the app.  For example, you can now submit a form and redux-form will cause a re-render of your component.
+
 
 ## Spying on the store 'dispatch'
 
-If you are using `useDispatch` within your components, it is likely you will want to test that actions have been dispatched with the correct arguments. You can return the `store` being used within the tests using a `renderProp`.
+If you are using `mapDispatch` within connected components, it is likely you will want to test that actions have been dispatched with the correct arguments.  You can return the `store` being used within the tests using a `renderProp`.
 
 ```jsx
 let dispatchSpy;
-testUtils = render(
+myCustomEditView = mount(
     <TestContext>
         {({ store }) => {
             dispatchSpy = jest.spyOn(store, 'dispatch');
@@ -82,23 +83,24 @@ testUtils = render(
 );
 
 it('should send the user to another url', () => {
-    fireEvent.click(testUtils.getByText('Go to next'));
+    myCustomEditView.find('.next-button').simulate('click');
     expect(dispatchSpy).toHaveBeenCalledWith(`/next-url`);
 });
 ```
 
+
 ## Testing Permissions
 
-As explained on the [Auth Provider chapter](./Authentication.md#authorization), it's possible to manage permissions via the `authProvider` in order to filter page and fields the users can see.
+As explained on the [Authorization page](./Authorization.md), it's possible to manage permissions via the authentication provider in order to filter page and fields the users can see.
 
-In order to avoid regressions and make the design explicit to your co-workers, it's better to unit test which fields are supposed to be displayed or hidden for each permission.
+In order to avoid regressions and make the design explicit to your co-workers, it's better to unit test which fields is supposed to be displayed or hidden for each permission.
 
-Here is an example with Jest and TestingLibrary, which is testing the [`UserShow` page of the simple example](https://github.com/marmelab/react-admin/blob/master/examples/simple/src/users/UserShow.tsx).
+Here is an example with Jest and Enzyme, which is testing the [User `show` page of the simple example](https://github.com/marmelab/react-admin/blob/master/examples/simple/src/users/UserShow.js).
 
 ```jsx
 // UserShow.spec.js
-import * as React from "react";
-import { render } from '@testing-library/react';
+import React from 'react';
+import { shallow } from 'enzyme';
 import { Tab, TextField } from 'react-admin';
 
 import UserShow from './UserShow';
@@ -106,71 +108,48 @@ import UserShow from './UserShow';
 describe('UserShow', () => {
     describe('As User', () => {
         it('should display one tab', () => {
-            const testUtils = render(<UserShow permissions="user" />);
+            const wrapper = shallow(<UserShow permissions="user" />);
 
-            const tabs = testUtils.queryByRole('tab');
-            expect(tabs.length).toEqual(1);
+            const tab = wrapper.find(Tab);
+            expect(tab.length).toBe(1);
         });
 
         it('should show the user identity in the first tab', () => {
-            const dataProvider = {
-                getOne: jest.fn().resolve({
-                    id: 1,
-                    name: 'Leila'
-                })
-            }
-            const testUtils = render(
-                <TestContext>
-                    <UserShow permissions="user" id="1" />
-                </TestContext>
-            );
+            const wrapper = shallow(<UserShow permissions="user" />);
 
-            expect(testUtils.queryByDisplayValue('1')).not.toBeNull();
-            expect(testUtils.queryByDisplayValue('Leila')).not.toBeNull();
+            const tab = wrapper.find(Tab);
+            const fields = tab.find(TextField);
+
+            expect(fields.at(0).prop('source')).toBe('id');
+            expect(fields.at(1).prop('source')).toBe('name');
         });
     });
 
     describe('As Admin', () => {
         it('should display two tabs', () => {
-            const testUtils = render(<UserShow permissions="user" />);
+            const wrapper = shallow(<UserShow permissions="admin" />);
 
-            const tabs = testUtils.queryByRole('tab');
-            expect(tabs.length).toEqual(2);
+            const tabs = wrapper.find(Tab);
+            expect(tabs.length).toBe(2);
         });
 
         it('should show the user identity in the first tab', () => {
-            const dataProvider = {
-                getOne: jest.fn().resolve({
-                    id: 1,
-                    name: 'Leila'
-                })
-            }
-            const testUtils = render(
-                <TestContext>
-                    <UserShow permissions="user" id="1" />
-                </TestContext>
-            );
+            const wrapper = shallow(<UserShow permissions="admin" />);
 
-            expect(testUtils.queryByDisplayValue('1')).not.toBeNull();
-            expect(testUtils.queryByDisplayValue('Leila')).not.toBeNull();
+            const tabs = wrapper.find(Tab);
+            const fields = tabs.at(0).find(TextField);
+
+            expect(fields.at(0).prop('source')).toBe('id');
+            expect(fields.at(1).prop('source')).toBe('name');
         });
 
         it('should show the user role in the second tab', () => {
-            const dataProvider = {
-                getOne: jest.fn().resolve({
-                    id: 1,
-                    name: 'Leila',
-                    role: 'admin'
-                })
-            }
-            const testUtils = render(
-                <TestContext>
-                    <UserShow permissions="user" id="1" />
-                </TestContext>
-            );
+            const wrapper = shallow(<UserShow permissions="admin" />);
 
-            fireEvent.click(testUtils.getByText('Security'));
-            expect(testUtils.queryByDisplayValue('admin')).not.toBeNull();
+            const tabs = wrapper.find(Tab);
+            const fields = tabs.at(1).find(TextField);
+
+            expect(fields.at(0).prop('source')).toBe('role');
         });
     });
 });

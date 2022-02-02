@@ -7,7 +7,7 @@ import {
     CRUD_DELETE_SUCCESS,
     CrudDeleteSuccessAction,
 } from '../../../../actions';
-import { DELETE, DELETE_MANY } from '../../../../core';
+import { DELETE, DELETE_MANY } from '../../../../dataFetchActions';
 import { Identifier } from '../../../../types';
 
 const initialState = [];

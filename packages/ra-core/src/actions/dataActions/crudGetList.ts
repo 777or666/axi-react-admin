@@ -1,12 +1,12 @@
-import { Record, PaginationPayload, SortPayload } from '../../types';
-import { GET_LIST } from '../../core';
+import { Record, Pagination, Sort } from '../../types';
+import { GET_LIST } from '../../dataFetchActions';
 import { FETCH_END, FETCH_ERROR } from '../fetchActions';
 import { NotificationSideEffect } from '../../sideEffect';
 
 export const crudGetList = (
     resource: string,
-    pagination: PaginationPayload,
-    sort: SortPayload,
+    pagination: Pagination,
+    sort: Sort,
     filter: object
 ): CrudGetListAction => ({
     type: CRUD_GET_LIST,
@@ -24,8 +24,8 @@ export const crudGetList = (
 });
 
 interface RequestPayload {
-    pagination: PaginationPayload;
-    sort: SortPayload;
+    pagination: Pagination;
+    sort: Sort;
     filter: object;
 }
 

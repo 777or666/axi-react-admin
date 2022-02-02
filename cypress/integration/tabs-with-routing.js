@@ -8,11 +8,9 @@ describe('Tabs with routing', () => {
     const LoginPage = loginPageFactory('#/login');
 
     beforeEach(() => {
-        ShowPage.navigate();
-        ShowPage.logout();
+        LoginPage.navigate();
         LoginPage.login('admin', 'password');
-        ShowPage.navigate();
-        cy.url().then(url => expect(url).to.contain('#/users'));
+        cy.url().then(url => expect(url).to.contain('#/posts'));
     });
 
     describe('in TabbedLayout component', () => {

@@ -1,309 +1,192 @@
-import * as React from 'react';
-import expect from 'expect';
+import React from 'react';
+import assert from 'assert';
+import { shallow } from 'enzyme';
 
-import ReferenceFieldController from './ReferenceFieldController';
-import { renderWithRedux } from 'ra-test';
-import { DataProviderContext } from '../../dataProvider';
-
-const defaultState = {
-    admin: {
-        resources: { posts: { data: { 123: { id: 123, title: 'foo' } } } },
-    },
-};
+import { UnconnectedReferenceFieldController as ReferenceFieldController } from './ReferenceFieldController';
 
 describe('<ReferenceFieldController />', () => {
-    it('should call the CRUD_GET_MANY action on mount if reference source is defined', async () => {
-        const dataProvider = {
-            getMany: jest.fn(() =>
-                Promise.resolve({ data: [{ id: 123, title: 'foo' }] })
-            ),
-        };
-        const { dispatch } = renderWithRedux(
-            <DataProviderContext.Provider value={dataProvider}>
-                <ReferenceFieldController
-                    children={jest.fn().mockReturnValue(<span>children</span>)} // eslint-disable-line react/no-children-prop
-                    record={{ id: 1, postId: 123 }}
-                    source="postId"
-                    reference="posts"
-                    resource="comments"
-                    basePath=""
-                />
-            </DataProviderContext.Provider>,
-            defaultState
-        );
-        await new Promise(resolve => setTimeout(resolve));
-        expect(dispatch).toBeCalledTimes(5);
-        const call = dispatch.mock.calls.find(
-            params => params[0].type === 'RA/CRUD_GET_MANY'
-        );
-        expect(call).not.toBeUndefined();
-        const crudGetManyAction = call[0];
-        expect(crudGetManyAction.payload).toEqual({
-            ids: [123],
-        });
-        expect(crudGetManyAction.meta.resource).toEqual('posts');
-        expect(dataProvider.getMany).toBeCalledTimes(1);
-        expect(dataProvider.getMany).toBeCalledWith('posts', {
-            ids: [123],
-        });
-    });
-
-    it('should not call CRUD_GET_MANY action on mount if reference source is null or undefined', async () => {
-        const { dispatch } = renderWithRedux(
+    it('should call crudGetManyAccumulate on componentDidMount if reference source is defined', () => {
+        const crudGetManyAccumulate = jest.fn();
+        shallow(
             <ReferenceFieldController
-                children={jest.fn().mockReturnValue(<span>children</span>)} // eslint-disable-line react/no-children-prop
+                children={jest.fn()} // eslint-disable-line react/no-children-prop
+                record={{ id: 1, postId: 123 }}
+                source="postId"
+                referenceRecord={{ id: 123, title: 'foo' }}
+                reference="posts"
+                basePath=""
+                crudGetManyAccumulate={crudGetManyAccumulate}
+            />
+        );
+        assert.equal(crudGetManyAccumulate.mock.calls.length, 1);
+    });
+    it('should not call crudGetManyAccumulate on componentDidMount if reference source is null or undefined', () => {
+        const crudGetManyAccumulate = jest.fn();
+        shallow(
+            <ReferenceFieldController
+                children={jest.fn()} // eslint-disable-line react/no-children-prop
                 record={{ id: 1, postId: null }}
                 source="postId"
+                referenceRecord={{ id: 123, title: 'foo' }}
                 reference="posts"
-                resource="comments"
                 basePath=""
-            />,
-            defaultState
+                crudGetManyAccumulate={crudGetManyAccumulate}
+            />
         );
-        await new Promise(resolve => setTimeout(resolve));
-        expect(dispatch).toBeCalledTimes(0);
+        assert.equal(crudGetManyAccumulate.mock.calls.length, 0);
     });
-
-    it('should pass resourceLinkPath and referenceRecord to its children', async () => {
-        const children = jest.fn().mockReturnValue(<span>children</span>);
-        renderWithRedux(
+    it('should render a link to the Edit page of the related record by default', () => {
+        const children = jest.fn();
+        const crudGetManyAccumulate = jest.fn();
+        shallow(
             <ReferenceFieldController
                 record={{ id: 1, postId: 123 }}
                 source="postId"
+                referenceRecord={{ id: 123, title: 'foo' }}
                 reference="posts"
                 resource="comments"
                 basePath="/comments"
+                crudGetManyAccumulate={crudGetManyAccumulate}
             >
                 {children}
-            </ReferenceFieldController>,
-            defaultState
+            </ReferenceFieldController>
         );
-        expect(children).toBeCalledWith({
-            loading: true,
-            loaded: true,
-            referenceRecord: { id: 123, title: 'foo' },
-            resourceLinkPath: '/posts/123',
-            error: null,
-            refetch: expect.any(Function),
-        });
+        assert.equal(children.mock.calls[0][0].resourceLinkPath, '/posts/123');
     });
-
-    it('should accept slashes in resource name', () => {
-        const children = jest.fn().mockReturnValue(<span>children</span>);
-        renderWithRedux(
+    it('should render a link to the Edit page of the related record when the resource contains slashes', () => {
+        const children = jest.fn();
+        const crudGetManyAccumulate = jest.fn();
+        shallow(
             <ReferenceFieldController
                 record={{ id: 1, postId: 123 }}
                 source="postId"
+                referenceRecord={{ id: 123, title: 'foo' }}
                 reference="prefix/posts"
                 resource="prefix/comments"
                 basePath="/prefix/comments"
+                crudGetManyAccumulate={crudGetManyAccumulate}
             >
                 {children}
-            </ReferenceFieldController>,
-            {
-                admin: {
-                    resources: {
-                        'prefix/posts': {
-                            data: { 123: { id: 123, title: 'foo' } },
-                        },
-                    },
-                },
-            }
+            </ReferenceFieldController>
         );
-
-        expect(children).toBeCalledWith({
-            loading: true,
-            loaded: true,
-            referenceRecord: { id: 123, title: 'foo' },
-            resourceLinkPath: '/prefix/posts/123',
-            error: null,
-            refetch: expect.any(Function),
-        });
+        assert.equal(
+            children.mock.calls[0][0].resourceLinkPath,
+            '/prefix/posts/123'
+        );
     });
-
-    it('should accept edit as resource name', () => {
-        const children = jest.fn().mockReturnValue(<span>children</span>);
-        renderWithRedux(
+    it('should render a link to the Edit page of the related record when the resource is named edit or show', () => {
+        const children = jest.fn();
+        const crudGetManyAccumulate = jest.fn();
+        shallow(
             <ReferenceFieldController
                 record={{ id: 1, fooId: 123 }}
                 source="fooId"
+                referenceRecord={{ id: 123, title: 'foo' }}
                 reference="edit"
                 resource="show"
                 basePath="/show"
+                crudGetManyAccumulate={crudGetManyAccumulate}
             >
                 {children}
-            </ReferenceFieldController>,
-            {
-                admin: {
-                    resources: {
-                        edit: {
-                            data: { 123: { id: 123, title: 'foo' } },
-                        },
-                    },
-                },
-            }
+            </ReferenceFieldController>
         );
+        assert.equal(children.mock.calls[0][0].resourceLinkPath, '/edit/123');
 
-        expect(children).toBeCalledWith({
-            loading: true,
-            loaded: true,
-            referenceRecord: { id: 123, title: 'foo' },
-            resourceLinkPath: '/edit/123',
-            error: null,
-            refetch: expect.any(Function),
-        });
-    });
-
-    it('should accept show as resource name', () => {
-        const children = jest.fn().mockReturnValue(<span>children</span>);
-        renderWithRedux(
+        shallow(
             <ReferenceFieldController
                 record={{ id: 1, fooId: 123 }}
                 source="fooId"
+                referenceRecord={{ id: 123, title: 'foo' }}
                 reference="show"
                 resource="edit"
                 basePath="/edit"
+                crudGetManyAccumulate={crudGetManyAccumulate}
             >
                 {children}
-            </ReferenceFieldController>,
-            {
-                admin: {
-                    resources: {
-                        show: {
-                            data: { 123: { id: 123, title: 'foo' } },
-                        },
-                    },
-                },
-            }
+            </ReferenceFieldController>
         );
-
-        expect(children).toBeCalledWith({
-            loading: true,
-            loaded: true,
-            referenceRecord: { id: 123, title: 'foo' },
-            resourceLinkPath: '/show/123',
-            error: null,
-            refetch: expect.any(Function),
-        });
+        assert.equal(children.mock.calls[1][0].resourceLinkPath, '/show/123');
     });
-
-    it('should render a link to the Show page of the related record when the link is show', () => {
-        const children = jest.fn().mockReturnValue(<span>children</span>);
-        renderWithRedux(
+    it('should render a link to the Show page of the related record when the linkType is show', () => {
+        const children = jest.fn();
+        const crudGetManyAccumulate = jest.fn();
+        shallow(
             <ReferenceFieldController
                 record={{ id: 1, postId: 123 }}
                 source="postId"
+                referenceRecord={{ id: 123, title: 'foo' }}
                 resource="comments"
                 reference="posts"
                 basePath="/comments"
-                link="show"
+                linkType="show"
+                crudGetManyAccumulate={crudGetManyAccumulate}
             >
                 {children}
-            </ReferenceFieldController>,
-            defaultState
+            </ReferenceFieldController>
         );
-
-        expect(children).toBeCalledWith({
-            loading: true,
-            loaded: true,
-            referenceRecord: { id: 123, title: 'foo' },
-            resourceLinkPath: '/posts/123/show',
-            error: null,
-            refetch: expect.any(Function),
-        });
+        assert.equal(
+            children.mock.calls[0][0].resourceLinkPath,
+            '/posts/123/show'
+        );
     });
-
-    it('should accept edit as resource name when link is show', () => {
-        const children = jest.fn().mockReturnValue(<span>children</span>);
-        renderWithRedux(
+    it('should render a link to the Show page of the related record when the resource is named edit or show and linkType is show', () => {
+        const children = jest.fn();
+        const crudGetManyAccumulate = jest.fn();
+        shallow(
             <ReferenceFieldController
                 record={{ id: 1, fooId: 123 }}
                 source="fooId"
+                referenceRecord={{ id: 123, title: 'foo' }}
                 reference="edit"
                 resource="show"
                 basePath="/show"
-                link="show"
+                linkType="show"
+                crudGetManyAccumulate={crudGetManyAccumulate}
             >
                 {children}
-            </ReferenceFieldController>,
-            {
-                admin: {
-                    resources: {
-                        edit: {
-                            data: { 123: { id: 123, title: 'foo' } },
-                        },
-                    },
-                },
-            }
+            </ReferenceFieldController>
+        );
+        assert.equal(
+            children.mock.calls[0][0].resourceLinkPath,
+            '/edit/123/show'
         );
 
-        expect(children).toBeCalledWith({
-            loading: true,
-            loaded: true,
-            referenceRecord: { id: 123, title: 'foo' },
-            resourceLinkPath: '/edit/123/show',
-            error: null,
-            refetch: expect.any(Function),
-        });
-    });
-
-    it('should accept show as resource name when link is show', () => {
-        const children = jest.fn().mockReturnValue(<span>children</span>);
-        renderWithRedux(
+        shallow(
             <ReferenceFieldController
                 record={{ id: 1, fooId: 123 }}
                 source="fooId"
+                referenceRecord={{ id: 123, title: 'foo' }}
                 reference="show"
                 resource="edit"
                 basePath="/edit"
-                link="show"
+                linkType="show"
+                crudGetManyAccumulate={crudGetManyAccumulate}
             >
                 {children}
-            </ReferenceFieldController>,
-            {
-                admin: {
-                    resources: {
-                        show: {
-                            data: { 123: { id: 123, title: 'foo' } },
-                        },
-                    },
-                },
-            }
+            </ReferenceFieldController>
         );
 
-        expect(children).toBeCalledWith({
-            loading: true,
-            loaded: true,
-            referenceRecord: { id: 123, title: 'foo' },
-            resourceLinkPath: '/show/123/show',
-            error: null,
-            refetch: expect.any(Function),
-        });
+        assert.equal(
+            children.mock.calls[1][0].resourceLinkPath,
+            '/show/123/show'
+        );
     });
-
-    it('should set resourceLinkPath to false when the link is false', () => {
-        const children = jest.fn().mockReturnValue(<span>children</span>);
-        renderWithRedux(
+    it('should render no link when the linkType is false', () => {
+        const children = jest.fn();
+        const crudGetManyAccumulate = jest.fn();
+        shallow(
             <ReferenceFieldController
-                record={{ id: 1, postId: 123 }}
-                source="postId"
-                reference="posts"
-                resource="comments"
+                record={{ id: 1, fooId: 123 }}
+                source="fooId"
+                referenceRecord={{ id: 123, title: 'foo' }}
+                reference="bar"
                 basePath="/foo"
-                link={false}
+                linkType={false}
+                crudGetManyAccumulate={crudGetManyAccumulate}
             >
                 {children}
-            </ReferenceFieldController>,
-            defaultState
+            </ReferenceFieldController>
         );
-
-        expect(children).toBeCalledWith({
-            loading: true,
-            loaded: true,
-            referenceRecord: { id: 123, title: 'foo' },
-            resourceLinkPath: false,
-            error: null,
-            refetch: expect.any(Function),
-        });
+        assert.equal(children.mock.calls[0][0].resourceLinkPath, false);
     });
 });

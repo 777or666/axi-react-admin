@@ -1,5 +1,5 @@
 import { Identifier } from '../../types';
-import { UPDATE_MANY } from '../../core';
+import { UPDATE_MANY } from '../../dataFetchActions';
 import { FETCH_END, FETCH_ERROR } from '../fetchActions';
 import { NotificationSideEffect, RefreshSideEffect } from '../../sideEffect';
 

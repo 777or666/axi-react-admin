@@ -1,14 +1,24 @@
-import * as React from 'react';
+import React, { SFC } from 'react';
 import PropTypes from 'prop-types';
-import { Field, Form } from 'react-final-form';
+import { Field, reduxForm, InjectedFormProps } from 'redux-form';
+import { connect } from 'react-redux';
+import compose from 'recompose/compose';
+import CardActions from '@material-ui/core/CardActions';
+import Button from '@material-ui/core/Button';
+import TextField from '@material-ui/core/TextField';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import {
-    Button,
-    CardActions,
-    CircularProgress,
-    TextField,
-} from '@material-ui/core';
-import { makeStyles, Theme } from '@material-ui/core/styles';
-import { useTranslate, useLogin, useNotify, useSafeSetState } from 'ra-core';
+    withStyles,
+    createStyles,
+    WithStyles,
+    Theme,
+} from '@material-ui/core/styles';
+import {
+    withTranslate,
+    userLogin,
+    TranslationContextProps,
+    ReduxState,
+} from 'ra-core';
 
 interface Props {
     redirectTo?: string;
@@ -19,8 +29,15 @@ interface FormData {
     password: string;
 }
 
-const useStyles = makeStyles(
-    (theme: Theme) => ({
+interface EnhancedProps
+    extends TranslationContextProps,
+        InjectedFormProps<FormData>,
+        WithStyles<typeof styles> {
+    isLoading: boolean;
+}
+
+const styles = ({ spacing }: Theme) =>
+    createStyles({
         form: {
             padding: '0 1em 1em 1em',
         },
@@ -31,15 +48,14 @@ const useStyles = makeStyles(
             width: '100%',
         },
         icon: {
-            marginRight: theme.spacing(1),
+            marginRight: spacing.unit,
         },
-    }),
-    { name: 'RaLoginForm' }
-);
+    });
 
-const Input = ({
-    meta: { touched, error }, // eslint-disable-line react/prop-types
-    input: inputProps, // eslint-disable-line react/prop-types
+// see http://redux-form.com/6.4.3/examples/material-ui/
+const renderInput = ({
+    meta: { touched, error } = { touched: false, error: '' }, // eslint-disable-line react/prop-types
+    input: { ...inputProps }, // eslint-disable-line react/prop-types
     ...props
 }) => (
     <TextField
@@ -50,111 +66,88 @@ const Input = ({
         fullWidth
     />
 );
+const login = (auth, dispatch, { redirectTo }) =>
+    dispatch(userLogin(auth, redirectTo));
 
-const LoginForm = (props: Props) => {
-    const { redirectTo } = props;
-    const [loading, setLoading] = useSafeSetState(false);
-    const login = useLogin();
-    const translate = useTranslate();
-    const notify = useNotify();
-    const classes = useStyles(props);
+const LoginForm: SFC<Props & EnhancedProps> = ({
+    classes,
+    isLoading,
+    handleSubmit,
+    translate,
+}) => (
+    <form onSubmit={handleSubmit(login)}>
+        <div className={classes.form}>
+            <div className={classes.input}>
+                <Field
+                    autoFocus
+                    id="username"
+                    name="username"
+                    component={renderInput}
+                    label={translate('ra.auth.username')}
+                    disabled={isLoading}
+                />
+            </div>
+            <div className={classes.input}>
+                <Field
+                    id="password"
+                    name="password"
+                    component={renderInput}
+                    label={translate('ra.auth.password')}
+                    type="password"
+                    disabled={isLoading}
+                    autoComplete="current-password"
+                />
+            </div>
+        </div>
+        <CardActions>
+            <Button
+                variant="raised"
+                type="submit"
+                color="primary"
+                disabled={isLoading}
+                className={classes.button}
+            >
+                {isLoading && (
+                    <CircularProgress
+                        className={classes.icon}
+                        size={18}
+                        thickness={2}
+                    />
+                )}
+                {translate('ra.auth.sign_in')}
+            </Button>
+        </CardActions>
+    </form>
+);
 
-    const validate = (values: FormData) => {
-        const errors = { username: undefined, password: undefined };
+const mapStateToProps = (state: ReduxState) => ({
+    isLoading: state.admin.loading > 0,
+});
 
-        if (!values.username) {
-            errors.username = translate('ra.validation.required');
-        }
-        if (!values.password) {
-            errors.password = translate('ra.validation.required');
-        }
-        return errors;
-    };
+const enhance = compose<Props & EnhancedProps, Props>(
+    withStyles(styles),
+    withTranslate,
+    connect(mapStateToProps),
+    reduxForm({
+        form: 'signIn',
+        validate: (values: FormData, props: TranslationContextProps) => {
+            const errors = { username: '', password: '' };
+            const { translate } = props;
+            if (!values.username) {
+                errors.username = translate('ra.validation.required');
+            }
+            if (!values.password) {
+                errors.password = translate('ra.validation.required');
+            }
+            return errors;
+        },
+    })
+);
 
-    const submit = values => {
-        setLoading(true);
-        login(values, redirectTo)
-            .then(() => {
-                setLoading(false);
-            })
-            .catch(error => {
-                setLoading(false);
-                notify(
-                    typeof error === 'string'
-                        ? error
-                        : typeof error === 'undefined' || !error.message
-                        ? 'ra.auth.sign_in_error'
-                        : error.message,
-                    {
-                        type: 'warning',
-                        messageArgs: {
-                            _:
-                                typeof error === 'string'
-                                    ? error
-                                    : error && error.message
-                                    ? error.message
-                                    : undefined,
-                        },
-                    }
-                );
-            });
-    };
+const EnhancedLoginForm = enhance(LoginForm);
 
-    return (
-        <Form
-            onSubmit={submit}
-            validate={validate}
-            render={({ handleSubmit }) => (
-                <form onSubmit={handleSubmit} noValidate>
-                    <div className={classes.form}>
-                        <div className={classes.input}>
-                            <Field
-                                autoFocus
-                                id="username"
-                                name="username"
-                                component={Input}
-                                label={translate('ra.auth.username')}
-                                disabled={loading}
-                            />
-                        </div>
-                        <div className={classes.input}>
-                            <Field
-                                id="password"
-                                name="password"
-                                component={Input}
-                                label={translate('ra.auth.password')}
-                                type="password"
-                                disabled={loading}
-                                autoComplete="current-password"
-                            />
-                        </div>
-                    </div>
-                    <CardActions>
-                        <Button
-                            variant="contained"
-                            type="submit"
-                            color="primary"
-                            disabled={loading}
-                            className={classes.button}
-                        >
-                            {loading && (
-                                <CircularProgress
-                                    className={classes.icon}
-                                    size={18}
-                                    thickness={2}
-                                />
-                            )}
-                            {translate('ra.auth.sign_in')}
-                        </Button>
-                    </CardActions>
-                </form>
-            )}
-        />
-    );
-};
-
-LoginForm.propTypes = {
+EnhancedLoginForm.propTypes = {
     redirectTo: PropTypes.string,
 };
 
-export default LoginForm;
+export default EnhancedLoginForm;
